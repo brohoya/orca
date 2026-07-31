@@ -8,6 +8,9 @@ type WslAvailabilityCache =
 
 let wslAvailableCache: WslAvailabilityCache | null = null
 let wslAvailabilityProbeInFlight: Promise<boolean> | null = null
+// Why: probes overlap (the sync twin cannot await the async one's spawn) and resolve out of
+// order, so every write carries the generation it was started against. See `writeWslAvailability`.
+let wslAvailabilityCacheGeneration = 0
 
 const WSL_AVAILABILITY_PROBE_TIMEOUT_MS = 5000
 // Why: availability is a separate, blocking probe. Deliberately not a multiple of the
@@ -65,16 +68,32 @@ function previousWslAvailabilityFailures(): number {
   return wslAvailableCache && 'failures' in wslAvailableCache ? wslAvailableCache.failures : 0
 }
 
-function cacheWslAvailabilityProbeResult(error: unknown, previousFailures: number): boolean {
-  wslAvailableCache = error
-    ? {
-        available: false,
-        cachedAt: Date.now(),
-        retryable: isRetryableWslProbeFailure(error),
-        failures: previousFailures + 1
-      }
-    : { available: true }
-  return wslAvailableCache.available
+/** Every cache mutation goes through here, so a generation can never drift from the value it stamps. */
+function writeWslAvailability(next: WslAvailabilityCache | null): void {
+  wslAvailableCache = next
+  wslAvailabilityCacheGeneration += 1
+}
+
+function cacheWslAvailabilityProbeResult(error: unknown, probeGeneration: number): boolean {
+  if (!error) {
+    // A success proves wsl.exe ran, so it stands whatever else landed meanwhile — the same
+    // rule `dropStaleWslAvailabilityFailure` applies to a successful distro list.
+    writeWslAvailability({ available: true })
+    return true
+  }
+  // Why: the cache moved while this spawn was in flight — a fresher probe answered, or a
+  // distro list invalidated the failure. This failure must not clobber that newer state or
+  // restore what was just dropped; the caller still gets the answer this probe observed.
+  if (probeGeneration !== wslAvailabilityCacheGeneration) {
+    return wslAvailableCache?.available ?? false
+  }
+  writeWslAvailability({
+    available: false,
+    cachedAt: Date.now(),
+    retryable: isRetryableWslProbeFailure(error),
+    failures: previousWslAvailabilityFailures() + 1
+  })
+  return false
 }
 
 function probeWslStatus(): Promise<void> {
@@ -106,21 +125,22 @@ export function isWslAvailable(): boolean {
     return cached
   }
 
-  const previousFailures = previousWslAvailabilityFailures()
-
   if (process.platform !== 'win32') {
-    wslAvailableCache = { available: false, unsupported: true }
+    writeWslAvailability({ available: false, unsupported: true })
     return false
   }
 
+  // Why: an async probe may already be in flight — this one blocks the thread, so it cannot
+  // join it, but it can stamp its generation and let whichever lands second stand down.
+  const probeGeneration = wslAvailabilityCacheGeneration
   try {
     execFileSync('wsl.exe', ['--status'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: WSL_AVAILABILITY_PROBE_TIMEOUT_MS
     })
-    return cacheWslAvailabilityProbeResult(null, previousFailures)
+    return cacheWslAvailabilityProbeResult(null, probeGeneration)
   } catch (error) {
-    return cacheWslAvailabilityProbeResult(error, previousFailures)
+    return cacheWslAvailabilityProbeResult(error, probeGeneration)
   }
 }
 
@@ -138,7 +158,7 @@ export function isWslAvailableAsync(): Promise<boolean> {
   }
 
   if (process.platform !== 'win32') {
-    wslAvailableCache = { available: false, unsupported: true }
+    writeWslAvailability({ available: false, unsupported: true })
     return Promise.resolve(false)
   }
 
@@ -146,10 +166,10 @@ export function isWslAvailableAsync(): Promise<boolean> {
     return wslAvailabilityProbeInFlight
   }
 
-  const previousFailures = previousWslAvailabilityFailures()
+  const probeGeneration = wslAvailabilityCacheGeneration
   wslAvailabilityProbeInFlight = probeWslStatus()
-    .then(() => cacheWslAvailabilityProbeResult(null, previousFailures))
-    .catch((error: unknown) => cacheWslAvailabilityProbeResult(error, previousFailures))
+    .then(() => cacheWslAvailabilityProbeResult(null, probeGeneration))
+    .catch((error: unknown) => cacheWslAvailabilityProbeResult(error, probeGeneration))
     .finally(() => {
       wslAvailabilityProbeInFlight = null
     })
@@ -175,12 +195,16 @@ export function getCachedWslAvailability(): boolean | null {
 // lifetime, so this cannot re-spawn the blocking probe more than once.
 export function dropStaleWslAvailabilityFailure(): void {
   if (wslAvailableCache && !wslAvailableCache.available && !('unsupported' in wslAvailableCache)) {
-    wslAvailableCache = null
+    writeWslAvailability(null)
+    return
   }
+  // A probe running right now would land its failure after this proof, so retire its
+  // generation as well; nothing is cached, so the next caller simply re-probes.
+  wslAvailabilityCacheGeneration += 1
 }
 
 export function _resetWslAvailabilityCacheForTests(): void {
-  wslAvailableCache = null
+  writeWslAvailability(null)
   wslAvailabilityProbeInFlight = null
 }
 
@@ -188,10 +212,11 @@ export function _setWslAvailabilityCacheForTests(
   available: boolean | null | undefined,
   retryable: boolean
 ): void {
-  wslAvailableCache =
+  writeWslAvailability(
     available === true
       ? { available: true }
       : available === false
         ? { available: false, cachedAt: Date.now(), retryable, failures: 1 }
         : null
+  )
 }

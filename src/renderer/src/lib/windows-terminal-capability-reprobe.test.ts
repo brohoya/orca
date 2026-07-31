@@ -86,7 +86,11 @@ describe('windows terminal capability re-probe', () => {
   it('stops entirely once the last consumer unregisters', async () => {
     vi.useFakeTimers()
     const { probe, readCached } = createWatcher()
-    const stopFirst = startWindowsTerminalCapabilityReprobe({ ownerKey: 'local', probe, readCached })
+    const stopFirst = startWindowsTerminalCapabilityReprobe({
+      ownerKey: 'local',
+      probe,
+      readCached
+    })
     const stopSecond = startWindowsTerminalCapabilityReprobe({
       ownerKey: 'local',
       probe,
@@ -103,6 +107,35 @@ describe('windows terminal capability re-probe', () => {
 
     stopSecond()
     await vi.advanceTimersByTimeAsync(30 * 60_000)
+    expect(probe).toHaveBeenCalledTimes(2)
+  })
+
+  // Why: the shared backoff belongs to whichever probe is running. Resetting it mid-probe
+  // arms a second wsl.exe/pwsh.exe read beside the first, and the in-flight probe's own
+  // backoff step then overwrites the restart the newly mounted surface asked for.
+  it('holds a demand signal that lands mid-probe until that probe answers', async () => {
+    vi.useFakeTimers()
+    let answerProbe: (capabilities: WindowsTerminalCapabilities) => void = () => {}
+    const pending = new Promise<WindowsTerminalCapabilities>((resolve) => {
+      answerProbe = resolve
+    })
+    const probe = vi.fn(() => pending)
+    const readCached = (): WindowsTerminalCapabilities => ABSENT_WSL
+    startWindowsTerminalCapabilityReprobe({ ownerKey: 'local', probe, readCached })
+
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(probe).toHaveBeenCalledTimes(1)
+
+    // A second surface mounts while wsl.exe is still answering the first probe.
+    startWindowsTerminalCapabilityReprobe({ ownerKey: 'local', probe, readCached })
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(probe).toHaveBeenCalledTimes(1)
+
+    answerProbe(ABSENT_WSL)
+    await vi.advanceTimersByTimeAsync(29_999)
+    expect(probe).toHaveBeenCalledTimes(1)
+    // The held signal restarts the backoff from the base delay once the probe lands.
+    await vi.advanceTimersByTimeAsync(1)
     expect(probe).toHaveBeenCalledTimes(2)
   })
 

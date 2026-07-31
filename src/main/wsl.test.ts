@@ -669,6 +669,69 @@ describe('WSL availability cache', () => {
     }
   })
 
+  // Why: the availability probe runs alongside the distro probe, so its failure can land
+  // after wsl.exe already listed a distro. Caching it then restores exactly the stale
+  // `wsl-unavailable` window `dropStaleWslAvailabilityFailure` exists to clear.
+  it('does not let an availability failure land after a distro list succeeds', async () => {
+    let finishProbe: (error: unknown) => void = () => {}
+    execFileMock.mockImplementationOnce((_command, _args, _options, callback) => {
+      finishProbe = (error: unknown) => callback(error, '', '')
+    })
+
+    await withPlatformAsync('win32', async () => {
+      const availability = isWslAvailableAsync()
+
+      // A distro turns up while wsl.exe --status is still answering.
+      execFileSyncMock.mockReturnValueOnce('Ubuntu\n')
+      expect(listWslDistros()).toEqual(['Ubuntu'])
+
+      finishProbe(Object.assign(new Error('probe failed'), { status: 1 }))
+      await expect(availability).resolves.toBe(false)
+      expect(getCachedWslAvailability()).toBeNull()
+
+      // Without dropping the late failure this stays false for the 10min window.
+      execFileSyncMock.mockReturnValueOnce('')
+      expect(isWslAvailable()).toBe(true)
+    })
+  })
+
+  // Why: the sync twin blocks the thread, so it cannot join an async probe already in
+  // flight. Whichever lands second must stand down — overwriting the fresher answer with a
+  // failure counted against a superseded cache shortens the backoff it just set.
+  it('keeps the fresher answer when a sync probe lands during an async one', async () => {
+    vi.useFakeTimers()
+    let finishProbe: (error: unknown) => void = () => {}
+    execFileMock.mockImplementationOnce((_command, _args, _options, callback) => {
+      finishProbe = (error: unknown) => callback(error, '', '')
+    })
+    execFileSyncMock.mockImplementationOnce(() => {
+      throw Object.assign(new Error('definitive failure'), { status: 1 })
+    })
+
+    try {
+      await withPlatformAsync('win32', async () => {
+        const availability = isWslAvailableAsync()
+        expect(isWslAvailable()).toBe(false)
+
+        finishProbe(
+          Object.assign(new Error('spawnSync ETIMEDOUT'), {
+            code: 'ETIMEDOUT',
+            status: null,
+            signal: 'SIGTERM'
+          })
+        )
+        await expect(availability).resolves.toBe(false)
+
+        // The definitive 10min window still stands, so a timeout's 45s does not re-spawn.
+        vi.advanceTimersByTime(45_000)
+        expect(isWslAvailable()).toBe(false)
+        expect(execFileSyncMock).toHaveBeenCalledTimes(1)
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   // Why: an empty list re-probes on a 15s-to-5min schedule, so clearing the availability
   // failure on every empty probe would re-spawn the blocking 5s probe far too often.
   it('does not drop an availability failure for an empty distro list', () => {
