@@ -626,8 +626,6 @@ export function connect(
         eventKeys: closeEvent.keys,
         eventStr: closeEvent.json
       })
-      lastWsClosedAt = closeAt
-      currentWsOpenedAt = null
       handleSocketClosed(openingWs, { closeCode: e?.code })
     }
 
@@ -659,6 +657,10 @@ export function connect(
       })
       return
     }
+    // Why: log-only close clocks live behind the stale guard so synthesized closes record them too,
+    // and a late onclose from a dead socket can't clobber the replacement's timings.
+    lastWsClosedAt = Date.now()
+    currentWsOpenedAt = null
     clearConnectTimer()
     ws = null
     sharedKey = null
