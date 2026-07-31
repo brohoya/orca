@@ -9,6 +9,7 @@ import {
   mapGitLabPipelineJobStatusToCheckStatus,
   mapGitLabPipelineJobStatusToConclusion
 } from '../../shared/gitlab-pipeline-checks'
+import { classifyCheckOutcome } from '../../shared/provider-check-summary'
 
 // ── Pipeline job mapping (GitLab REST `/pipelines/:id/jobs`) ────────
 // Why: GitLab pipeline jobs roughly map to GitHub check-runs, but use a
@@ -161,20 +162,26 @@ export function derivePipelineStatus(
   }
   let hasFailure = false
   let hasPending = false
+  let hasPassed = false
   let hasUnknown = false
   for (const job of rollup) {
     const s = job.status?.toLowerCase() ?? ''
     const conclusion = mapPipelineJobStatusToConclusion(s)
-    if (
-      conclusion === 'failure' ||
-      conclusion === 'cancelled' ||
-      conclusion === 'action_required'
-    ) {
-      hasFailure = true
-    } else if (conclusion === 'pending') {
-      hasPending = true
-    } else if (conclusion !== 'success' && conclusion !== 'skipped' && conclusion !== 'neutral') {
+    // Why: a status this build cannot name is not a green light, even beside a passing job.
+    if (conclusion === null) {
       hasUnknown = true
+      continue
+    }
+    const outcome = classifyCheckOutcome({
+      status: mapPipelineJobStatusToCheckStatus(s),
+      conclusion
+    })
+    if (outcome === 'failed') {
+      hasFailure = true
+    } else if (outcome === 'pending') {
+      hasPending = true
+    } else if (outcome === 'passed') {
+      hasPassed = true
     }
   }
   if (hasFailure) {
@@ -183,7 +190,12 @@ export function derivePipelineStatus(
   if (hasPending) {
     return 'pending'
   }
-  return hasUnknown ? 'neutral' : 'success'
+  if (hasUnknown) {
+    return 'neutral'
+  }
+  // Why: a passing job outranks a neutral one (a manual gate beside a green pipeline is green), but
+  // a pipeline holding nothing but gates is awaiting a human — never report that as passed.
+  return hasPassed ? 'success' : 'neutral'
 }
 
 // ── Raw → GitLabWorkItem mapping ────────────────────────────────────

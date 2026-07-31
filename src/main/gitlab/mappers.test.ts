@@ -249,6 +249,13 @@ describe('derivePipelineStatus', () => {
     expect(derivePipelineStatus([{ status: 'manual' }, { status: 'success' }])).toBe('success')
   })
 
+  it('keeps a pipeline blocked on a manual gate out of the green', () => {
+    // Why: neutral means "waiting on a human", which is not the same as "passed" — a pipeline with
+    // no passing job must never paint the card green.
+    expect(derivePipelineStatus([{ status: 'manual' }])).toBe('neutral')
+    expect(derivePipelineStatus([{ status: 'manual' }, { status: 'manual' }])).toBe('neutral')
+  })
+
   it('handles a single object with status', () => {
     expect(derivePipelineStatus({ status: 'success' })).toBe('success')
   })
