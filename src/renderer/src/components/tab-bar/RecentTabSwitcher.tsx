@@ -7,7 +7,10 @@ import { activateCyclableTab } from '../../hooks/ipc-tab-switch'
 import { getShortcutPlatform } from '../../hooks/useShortcutLabel'
 import { formatKeybinding } from '../../../../shared/keybindings'
 import type { CtrlTabScope } from '../../../../shared/tab-types'
-import { isRecentTabSwitcherScopeToggle } from '../../../../shared/recent-tab-switcher-scope-toggle'
+import {
+  isRecentTabSwitcherScopeToggle,
+  RECENT_TAB_SWITCHER_SCOPE_TOGGLE_KEYBINDING
+} from '../../../../shared/recent-tab-switcher-scope-toggle'
 import {
   isRecentTabSwitcherCommitRelease,
   matchesRecentTabSwitcherChord
@@ -278,7 +281,12 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
             {scopeLabel(switcher.scope)}
           </span>
           <span className="flex shrink-0 items-center gap-1.5">
-            <ShortcutKeyCombo keys={formatKeybinding('Ctrl+A', getShortcutPlatform())} />
+            <ShortcutKeyCombo
+              keys={formatKeybinding(
+                RECENT_TAB_SWITCHER_SCOPE_TOGGLE_KEYBINDING,
+                getShortcutPlatform()
+              )}
+            />
             {scopeLabel(otherScope)}
           </span>
         </div>
