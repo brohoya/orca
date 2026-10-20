@@ -89,8 +89,7 @@ export function setupGuestShortcutForwarding(args: {
       input.type === 'keyDown' &&
       isRecentTabSwitcherScopeToggle(input, process.platform)
     ) {
-      // Why: the page would select all; while the switcher is open, Ctrl+A flips its scope.
-      event.preventDefault()
+      // Why: no preventDefault, for the same reason as Tab above; the page also gets Ctrl+A.
       if (!input.isAutoRepeat) {
         resolveRenderer(browserTabId)?.send('ui:ctrlTabToggleScope')
       }

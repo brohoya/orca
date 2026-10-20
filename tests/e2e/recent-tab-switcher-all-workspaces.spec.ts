@@ -5,12 +5,15 @@
  * Escape cancels, and the next Ctrl+Tab keeps the chosen scope. A workspace
  * that a sidebar click shows and a pane that takes focus count as visits too.
  * Agent chat and browser page rows open in their own workspace, and outside a
- * workspace view This workspace says why it has no list. Writes the observed
- * switcher states and screenshots as a test artifact.
+ * workspace view This workspace says why it has no list. The same gesture works
+ * when a browser page has the keyboard focus and its keys reach Orca only
+ * through the main process. Writes the observed switcher states and screenshots
+ * as a test artifact.
  */
 
 import { writeFileSync } from 'node:fs'
 import type { Page } from '@stablyai/playwright-test'
+import { startBrowserLinkServer } from './helpers/browser-link-server'
 import { test, expect } from './helpers/orca-app'
 import {
   ensureTerminalVisible,
@@ -137,6 +140,48 @@ async function focusPane(page: Page, worktreeId: string, groupId: string): Promi
     wId: worktreeId,
     gId: groupId
   })
+}
+
+const PAGE_CTRL_TAB: Electron.KeyboardInputEvent[] = [
+  { type: 'keyDown', keyCode: 'Control', modifiers: ['control'] },
+  { type: 'keyDown', keyCode: 'Tab', modifiers: ['control'] },
+  { type: 'keyUp', keyCode: 'Tab', modifiers: ['control'] }
+]
+
+/** Sends keys into the page's own process, the way they arrive when the page has the focus. */
+async function sendKeysToPage(
+  page: Page,
+  browserTabId: string,
+  keys: Electron.KeyboardInputEvent[]
+): Promise<void> {
+  await page.evaluate(
+    async ({ tabId, keyEvents }) => {
+      const webview = document.querySelector<Electron.WebviewTag>(
+        `[data-browser-overlay-tab-id="${tabId}"] webview`
+      )
+      if (!webview) {
+        throw new Error(`no page for browser tab ${tabId}`)
+      }
+      for (const keyEvent of keyEvents) {
+        await webview.sendInputEvent(keyEvent)
+      }
+    },
+    { tabId: browserTabId, keyEvents: keys }
+  )
+}
+
+async function readPageTitle(page: Page, browserTabId: string): Promise<string> {
+  return page.evaluate(async (tabId) => {
+    const webview = document.querySelector<Electron.WebviewTag>(
+      `[data-browser-overlay-tab-id="${tabId}"] webview`
+    )
+    try {
+      return webview ? String(await webview.executeJavaScript('document.title')) : ''
+    } catch {
+      // Why: the page is not attached yet; the caller polls again.
+      return ''
+    }
+  }, browserTabId)
 }
 
 test.describe('Ctrl+Tab switcher across workspaces', () => {
@@ -359,5 +404,77 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     const reportPath = testInfo.outputPath('recent-tab-switcher-all-workspaces.json')
     writeFileSync(reportPath, `${JSON.stringify({ steps }, null, 2)}\n`)
     await testInfo.attach('switcher-states', { path: reportPath, contentType: 'application/json' })
+  })
+
+  test('from a focused browser page, Ctrl+A flips the scope and the release opens the tab', async ({
+    orcaPage
+  }, testInfo) => {
+    const page = orcaPage
+    await waitForSessionReady(page)
+    await waitForActiveWorktree(page)
+    await ensureTerminalVisible(page)
+    await page.evaluate(async () => {
+      await window.__store!.getState().updateSettings({ uiLanguage: 'en' })
+    })
+    const { primaryId, secondaryId } = await getWorktreeIdsByBranch(page)
+    const activeTab = page.locator('[data-tab-id][data-active="true"]:visible')
+    const steps: (SwitcherSnapshot & { step: string })[] = []
+    const server = await startBrowserLinkServer()
+    try {
+      // Focus history: index.ts in e2e-secondary, then a page in the primary workspace.
+      await openSeededFile(page, secondaryId, 'src/index.ts', { activate: true })
+      await expect(activeTab).toContainText('index.ts')
+      const browserTabId = await page.evaluate(
+        ({ wId, url }) => {
+          const state = window.__store!.getState()
+          // Why: one task, so the primary terminal does not count as a visit and index.ts stays second.
+          state.setActiveWorktree(wId)
+          return state.createBrowserTab(wId, url, { title: 'Source page', activate: true }).id
+        },
+        { wId: primaryId, url: server.sourceUrl }
+      )
+      await expect
+        .poll(() => readPageTitle(page, browserTabId), { timeout: 30_000 })
+        .toBe('Source page')
+
+      await sendKeysToPage(page, browserTabId, PAGE_CTRL_TAB)
+      const workspaceScope = await readSwitcher(page)
+      steps.push({ step: 'page-ctrl-tab', ...workspaceScope })
+      expect(workspaceScope.title).toBe('Switch Tab · This workspace')
+      await sendKeysToPage(page, browserTabId, [
+        { type: 'keyDown', keyCode: 'A', modifiers: ['control'] }
+      ])
+      await expect(switcher(page)).toContainText('Switch Tab · All workspaces')
+      const allScope = await readSwitcher(page)
+      steps.push({ step: 'page-ctrl-a', ...allScope })
+      expect(rowIndex(allScope, 'Source page')).toBe(0)
+      expect(rowIndex(allScope, 'index.ts')).toBe(1)
+      expect(allScope.rows[1].selected).toBe(true)
+      expect(allScope.rows[1].text).toContain('e2e-secondary')
+      await switcher(page).screenshot({
+        path: testInfo.outputPath('switcher-from-browser-page.png')
+      })
+
+      // Why: A is the last key before the release, so a dropped Control keyup leaves the box open.
+      await sendKeysToPage(page, browserTabId, [
+        { type: 'keyUp', keyCode: 'A', modifiers: ['control'] },
+        { type: 'keyUp', keyCode: 'Control' }
+      ])
+      await expect(switcher(page)).toHaveCount(0)
+      await expect(page.locator('[data-rendered-active-worktree-id]')).toHaveAttribute(
+        'data-rendered-active-worktree-id',
+        secondaryId
+      )
+      await expect(activeTab).toContainText('index.ts')
+    } finally {
+      await server.close()
+    }
+
+    const reportPath = testInfo.outputPath('recent-tab-switcher-browser-page.json')
+    writeFileSync(reportPath, `${JSON.stringify({ steps }, null, 2)}\n`)
+    await testInfo.attach('switcher-states-from-page', {
+      path: reportPath,
+      contentType: 'application/json'
+    })
   })
 })
