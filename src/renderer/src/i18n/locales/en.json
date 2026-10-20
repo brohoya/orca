@@ -3975,7 +3975,11 @@
           },
           "RecentTabSwitcher": {
             "329638ff6f": "Switch Tab",
-            "07ad4cd0b7": "Switch tabs"
+            "07ad4cd0b7": "Switch tabs",
+            "scopeAll": "All workspaces",
+            "scopeWorkspace": "This workspace",
+            "noOtherTabs": "No other tabs",
+            "outsideWorkspace": "Go to a workspace to see its tabs"
           },
           "SortableTab": {
             "ab19f603eb": "Rename tab {{value0}}",
@@ -10585,7 +10589,11 @@
             "command": "command",
             "confirm": "confirm",
             "close": "close",
-            "omp": "OMP"
+            "omp": "OMP",
+            "tab_scope": "Tab Scope",
+            "tab_scope_short": "This workspace or all workspaces.",
+            "workspaces": "workspaces",
+            "projects": "projects"
           }
         },
         "git": {
@@ -13443,6 +13451,12 @@
           "manualDeleteWarning": "Only do this if no other machine sharing this home runs Orca for this profile.",
           "close": "Close",
           "reclaimedNotStarted": "The lock was cleared, but Orca’s server did not start."
+        },
+        "RecentTabScopeControl": {
+          "title": "Tab Scope",
+          "description": "This workspace or all workspaces. The switcher can also change it.",
+          "workspace": "This workspace",
+          "all": "All workspaces"
         }
       },
       "right": {
