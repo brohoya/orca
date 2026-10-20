@@ -516,9 +516,9 @@ describe('browserManager', () => {
 
     // Preventing keydown loses the commit keyup in Electron.
     expect(keyDownPreventDefault).not.toHaveBeenCalled()
+    expect(togglePreventDefault).not.toHaveBeenCalled()
     expect(keyUpPreventDefault).toHaveBeenCalledTimes(1)
     expect(selectAllPreventDefault).not.toHaveBeenCalled()
-    expect(togglePreventDefault).toHaveBeenCalledTimes(1)
     expect(rendererSendMock.mock.calls).toEqual([
       ['ui:ctrlTabKeyDown', { shiftKey: false }],
       ['ui:ctrlTabToggleScope'],
