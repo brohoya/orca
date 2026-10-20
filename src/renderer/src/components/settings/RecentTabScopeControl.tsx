@@ -36,7 +36,8 @@ export function RecentTabScopeControl({
               void updateSettings({ ctrlTabScope: normalizeCtrlTabScope(value) })
             }
           >
-            <SelectTrigger className="w-[180px]" aria-labelledby={labelId}>
+            {/* Why: a minimum width, not a fixed one, so a long translation is not cut. */}
+            <SelectTrigger className="min-w-[180px]" aria-labelledby={labelId}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
