@@ -3667,7 +3667,11 @@
           },
           "RecentTabSwitcher": {
             "329638ff6f": "タブの切り替え",
-            "07ad4cd0b7": "タブを切り替える"
+            "07ad4cd0b7": "タブを切り替える",
+            "scopeAll": "すべてのワークスペース",
+            "scopeWorkspace": "このワークスペース",
+            "noOtherTabs": "他のタブはありません",
+            "outsideWorkspace": "タブを表示するには、ワークスペースに移動してください"
           },
           "SortableTab": {
             "ab19f603eb": "タブ {{value0}} の名前を変更します",
@@ -10241,7 +10245,11 @@
             "close": "近い",
             "omp": "OMP",
             "nodeDistMirror": "ミラー",
-            "nodeDistNodejs": "nodejs"
+            "nodeDistNodejs": "nodejs",
+            "tab_scope": "タブのスコープ",
+            "tab_scope_short": "このワークスペースまたはすべてのワークスペース。",
+            "workspaces": "ワークスペース",
+            "projects": "プロジェクト"
           }
         },
         "git": {
@@ -13098,6 +13106,12 @@
           "searchLabel": "ビルドの検索",
           "searchPlaceholder": "ビルドを検索…",
           "noMatches": "一致するビルドはありません。"
+        },
+        "RecentTabScopeControl": {
+          "title": "タブのスコープ",
+          "description": "このワークスペースまたはすべてのワークスペース。スイッチャーでも変更できます。",
+          "workspace": "このワークスペース",
+          "all": "すべてのワークスペース"
         }
       },
       "right": {

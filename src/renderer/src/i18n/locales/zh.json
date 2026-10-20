@@ -3667,7 +3667,11 @@
           },
           "RecentTabSwitcher": {
             "329638ff6f": "切换选项卡",
-            "07ad4cd0b7": "切换标签"
+            "07ad4cd0b7": "切换标签",
+            "scopeAll": "所有工作区",
+            "scopeWorkspace": "此工作区",
+            "noOtherTabs": "没有其他选项卡",
+            "outsideWorkspace": "前往某个工作区以查看其选项卡"
           },
           "SortableTab": {
             "ab19f603eb": "重命名选项卡 {{value0}}",
@@ -10204,7 +10208,11 @@
             "close": "关闭",
             "omp": "OMP",
             "nodeDistMirror": "镜像",
-            "nodeDistNodejs": "nodejs"
+            "nodeDistNodejs": "nodejs",
+            "tab_scope": "选项卡范围",
+            "tab_scope_short": "此工作区或所有工作区。",
+            "workspaces": "工作区",
+            "projects": "项目"
           }
         },
         "git": {
@@ -13098,6 +13106,12 @@
           "searchPlaceholder": "搜索构建...",
           "noMatches": "没有匹配的版本。",
           "searchLabel": "搜索构建"
+        },
+        "RecentTabScopeControl": {
+          "title": "选项卡范围",
+          "description": "此工作区或所有工作区。也可以在切换器中更改。",
+          "workspace": "此工作区",
+          "all": "所有工作区"
         }
       },
       "right": {

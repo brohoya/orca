@@ -3826,7 +3826,11 @@
           },
           "RecentTabSwitcher": {
             "329638ff6f": "Changer d'onglet",
-            "07ad4cd0b7": "Basculer entre les onglets"
+            "07ad4cd0b7": "Basculer entre les onglets",
+            "scopeAll": "Tous les espaces de travail",
+            "scopeWorkspace": "Cet espace de travail",
+            "noOtherTabs": "Aucun autre onglet",
+            "outsideWorkspace": "Accédez à un espace de travail pour voir ses onglets"
           },
           "SortableTab": {
             "ab19f603eb": "Renommer l'onglet {{value0}}",
@@ -10421,7 +10425,11 @@
             "close": "fermer",
             "omp": "OMP",
             "nodeDistMirror": "miroir",
-            "nodeDistNodejs": "nodejs"
+            "nodeDistNodejs": "nodejs",
+            "tab_scope": "Portée des onglets",
+            "tab_scope_short": "Cet espace de travail ou tous les espaces de travail.",
+            "workspaces": "espaces de travail",
+            "projects": "projets"
           }
         },
         "git": {
@@ -13258,6 +13266,12 @@
           "searchPlaceholder": "Rechercher des versions…",
           "searchLabel": "Rechercher des versions",
           "noMatches": "Aucune version correspondante."
+        },
+        "RecentTabScopeControl": {
+          "title": "Portée des onglets",
+          "description": "Cet espace de travail ou tous les espaces de travail. Le sélecteur peut aussi la modifier.",
+          "workspace": "Cet espace de travail",
+          "all": "Tous les espaces de travail"
         }
       },
       "right": {
