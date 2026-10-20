@@ -72,10 +72,7 @@ export function tabActivationPatch(
 export function createTabsFocusActions(
   _set: TabsSliceSet,
   get: TabsSliceGet
-): Pick<
-  TabsSlice,
-  'getTab' | 'getActiveTab' | 'findTabForEntityInGroup' | 'activateTab' | 'markTabFocused'
-> {
+): Pick<TabsSlice, 'getTab' | 'getActiveTab' | 'findTabForEntityInGroup' | 'activateTab'> {
   const set = _set
   return {
     getTab: (tabId) => findTabAndWorktree(get().unifiedTabsByWorktree, tabId)?.tab ?? null,
@@ -132,26 +129,6 @@ export function createTabsFocusActions(
       if (ORCA_LAYOUT_OWNER_IS_MAIN && promoted.length > 0) {
         promotePreviewTabsThroughLayoutOwner(get(), set, promoted)
       }
-    },
-
-    markTabFocused: (worktreeId, tabId, focusedAt) =>
-      set((state) => {
-        const tabs = Object.hasOwn(state.unifiedTabsByWorktree, worktreeId)
-          ? state.unifiedTabsByWorktree[worktreeId]
-          : []
-        const tab = tabs.find((item) => item.id === tabId)
-        // Why: activateTab may have stamped this visit already; keep the newer time.
-        if (!tab || (tab.lastFocusedAt ?? 0) >= focusedAt) {
-          return state
-        }
-        return {
-          unifiedTabsByWorktree: {
-            ...state.unifiedTabsByWorktree,
-            [worktreeId]: tabs.map((item) =>
-              item === tab ? { ...item, lastFocusedAt: focusedAt } : item
-            )
-          }
-        }
-      })
+    }
   }
 }

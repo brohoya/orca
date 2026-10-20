@@ -96,8 +96,6 @@ export type TabsSlice = {
     /** recordFocus false skips the focus-time stamp (not a user visit); the group history still updates. */
     opts?: { preservePreview?: boolean; worktreeId?: string; recordFocus?: boolean }
   ) => void
-  /** Stamps the focus time of a tab that came on screen without activateTab (workspace switch, pane focus). */
-  markTabFocused: (worktreeId: string, tabId: string, focusedAt: number) => void
   closeUnifiedTab: (
     tabId: string,
     opts?: {

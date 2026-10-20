@@ -4,10 +4,12 @@ import type { AppState } from '@/store/types'
 
 type FocusedTabState = Pick<
   AppState,
-  'activeWorktreeId' | 'activeGroupIdByWorktree' | 'groupsByWorktree'
+  'activeWorktreeId' | 'activeGroupIdByWorktree' | 'groupsByWorktree' | 'unifiedTabsByWorktree'
 >
 
-function readFocusedTab(state: FocusedTabState): { worktreeId: string; tabId: string } | null {
+type FocusedTab = { worktreeId: string; tabId: string; lastFocusedAt: number }
+
+function readFocusedTab(state: FocusedTabState): FocusedTab | null {
   const worktreeId = state.activeWorktreeId
   if (!worktreeId) {
     return null
@@ -16,15 +18,17 @@ function readFocusedTab(state: FocusedTabState): { worktreeId: string; tabId: st
   const tabId = (state.groupsByWorktree[worktreeId] ?? []).find(
     (group) => group.id === groupId
   )?.activeTabId
-  return tabId ? { worktreeId, tabId } : null
+  const tab = tabId
+    ? (state.unifiedTabsByWorktree[worktreeId] ?? []).find((item) => item.id === tabId)
+    : undefined
+  return tab ? { worktreeId, tabId: tab.id, lastFocusedAt: tab.lastFocusedAt ?? 0 } : null
 }
 
 /**
  * Stamps lastFocusedAt on the tab that a workspace switch or a pane focus puts on screen,
- * because activateTab stamps only the tabs that it selects. Cmd+J and Ctrl+Tab order by it.
- * Follow-up: activateTab and tab creation also stamp lastFocusedAt, and TabGroup.recentTabIds
- * and lastVisitedAtByWorktreeId keep similar orders. This observer could be their one writer,
- * and each list could filter the same data.
+ * because those paths do not call activateTab. Cmd+J and Ctrl+Tab order by it.
+ * Follow-up: TabGroup.recentTabIds and lastVisitedAtByWorktreeId keep similar orders. This
+ * observer could be their one writer, and each list could filter the same data.
  */
 export function useTabFocusRecency({ enabled }: { enabled: boolean }): void {
   useEffect(() => {
@@ -34,7 +38,7 @@ export function useTabFocusRecency({ enabled }: { enabled: boolean }): void {
     let stampedKey: string | null = null
     let changedAt: number | null = null
     const stamp = (): void => {
-      const focusedAt = changedAt ?? Date.now()
+      const since = changedAt ?? Date.now()
       changedAt = null
       const state = useAppStore.getState()
       const focused = readFocusedTab(state)
@@ -43,9 +47,12 @@ export function useTabFocusRecency({ enabled }: { enabled: boolean }): void {
         return
       }
       stampedKey = key
-      if (focused) {
-        state.markTabFocused(focused.worktreeId, focused.tabId, focusedAt)
+      // Why: a tab that activateTab selected in this task already has its stamp.
+      if (!focused || focused.lastFocusedAt >= since) {
+        return
       }
+      // Why: activateTab stays the one renderer writer of focus times (layout-writer ratchet).
+      state.activateTab(focused.tabId, { worktreeId: focused.worktreeId, preservePreview: true })
     }
     const unsubscribe = useAppStore.subscribe((state, previous) => {
       if (
