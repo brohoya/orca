@@ -1,28 +1,5 @@
 import { useEffect } from 'react'
 import { useAppStore } from '@/store'
-import type { AppState } from '@/store/types'
-
-type FocusedTabState = Pick<
-  AppState,
-  'activeWorktreeId' | 'activeGroupIdByWorktree' | 'groupsByWorktree' | 'unifiedTabsByWorktree'
->
-
-type FocusedTab = { worktreeId: string; tabId: string; lastFocusedAt: number }
-
-function readFocusedTab(state: FocusedTabState): FocusedTab | null {
-  const worktreeId = state.activeWorktreeId
-  if (!worktreeId) {
-    return null
-  }
-  const groupId = state.activeGroupIdByWorktree[worktreeId]
-  const tabId = (state.groupsByWorktree[worktreeId] ?? []).find(
-    (group) => group.id === groupId
-  )?.activeTabId
-  const tab = tabId
-    ? (state.unifiedTabsByWorktree[worktreeId] ?? []).find((item) => item.id === tabId)
-    : undefined
-  return tab ? { worktreeId, tabId: tab.id, lastFocusedAt: tab.lastFocusedAt ?? 0 } : null
-}
 
 /**
  * Stamps lastFocusedAt on the tab that a workspace switch or a pane focus puts on screen,
@@ -41,18 +18,19 @@ export function useTabFocusRecency({ enabled }: { enabled: boolean }): void {
       const since = changedAt ?? Date.now()
       changedAt = null
       const state = useAppStore.getState()
-      const focused = readFocusedTab(state)
-      const key = focused ? `${focused.worktreeId}\u0000${focused.tabId}` : null
+      const worktreeId = state.activeWorktreeId
+      const tab = worktreeId ? state.getActiveTab(worktreeId) : null
+      const key = worktreeId && tab ? `${worktreeId}\u0000${tab.id}` : null
       if (key === stampedKey) {
         return
       }
       stampedKey = key
       // Why: a tab that activateTab selected in this task already has its stamp.
-      if (!focused || focused.lastFocusedAt >= since) {
+      if (!worktreeId || !tab || (tab.lastFocusedAt ?? 0) >= since) {
         return
       }
       // Why: activateTab stays the one renderer writer of focus times (layout-writer ratchet).
-      state.activateTab(focused.tabId, { worktreeId: focused.worktreeId, preservePreview: true })
+      state.activateTab(tab.id, { worktreeId, preservePreview: true })
     }
     const unsubscribe = useAppStore.subscribe((state, previous) => {
       if (
