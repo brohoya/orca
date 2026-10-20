@@ -3683,7 +3683,11 @@
           },
           "RecentTabSwitcher": {
             "329638ff6f": "Cambiar pestaña",
-            "07ad4cd0b7": "Cambiar pestañas"
+            "07ad4cd0b7": "Cambiar pestañas",
+            "scopeAll": "Todos los espacios de trabajo",
+            "scopeWorkspace": "Este espacio de trabajo",
+            "noOtherTabs": "No hay otras pestañas",
+            "outsideWorkspace": "Ve a un espacio de trabajo para ver sus pestañas"
           },
           "SortableTab": {
             "ab19f603eb": "Cambiar nombre de pestaña {{value0}}",
@@ -10232,7 +10236,11 @@
             "confirm": "confirmar",
             "omp": "OMP",
             "nodeDistMirror": "espejo",
-            "nodeDistNodejs": "nodejs"
+            "nodeDistNodejs": "nodejs",
+            "tab_scope": "Alcance de pestañas",
+            "tab_scope_short": "Este espacio de trabajo o todos los espacios de trabajo.",
+            "workspaces": "espacios de trabajo",
+            "projects": "proyectos"
           }
         },
         "git": {
@@ -13115,6 +13123,12 @@
           "searchLabel": "Buscar compilaciones",
           "noMatches": "No hay compilaciones coincidentes.",
           "searchPlaceholder": "Buscar compilaciones…"
+        },
+        "RecentTabScopeControl": {
+          "title": "Alcance de pestañas",
+          "description": "Este espacio de trabajo o todos los espacios de trabajo. El selector también puede cambiarlo.",
+          "workspace": "Este espacio de trabajo",
+          "all": "Todos los espacios de trabajo"
         }
       },
       "right": {
