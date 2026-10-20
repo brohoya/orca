@@ -34,6 +34,7 @@ export type WorkspaceVisibleTabType =
   | 'browser'
   | 'simulator'
 export type CtrlTabOrderMode = 'mru' | 'sequential'
+export type CtrlTabScope = 'workspace' | 'all'
 
 // Why: many-to-one — every editor-family kind collapses to 'editor'. Never invert it by equality;
 // resolve the concrete tab and project forward instead.

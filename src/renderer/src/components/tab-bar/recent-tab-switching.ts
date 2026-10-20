@@ -1,4 +1,10 @@
-import type { CtrlTabOrderMode, Tab, TabContentType, TabGroup } from '../../../../shared/tab-types'
+import type {
+  CtrlTabOrderMode,
+  CtrlTabScope,
+  Tab,
+  TabContentType,
+  TabGroup
+} from '../../../../shared/tab-types'
 import { resolveUnifiedTabLabel } from '../../../../shared/tab-title-resolution'
 import type { AppState } from '../../store/types'
 import { sanitizeRecentTabIds } from '../../store/slices/tab-group-state'
@@ -36,6 +42,10 @@ export function normalizeCtrlTabOrderMode(
   value: CtrlTabOrderMode | null | undefined
 ): CtrlTabOrderMode {
   return value === 'sequential' ? 'sequential' : 'mru'
+}
+
+export function normalizeCtrlTabScope(value: string | null | undefined): CtrlTabScope {
+  return value === 'all' ? 'all' : 'workspace'
 }
 
 function getVisibleTabKey(tab: VisibleTabRef): string {
