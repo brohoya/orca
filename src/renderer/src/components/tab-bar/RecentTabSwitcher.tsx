@@ -265,8 +265,19 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
   const otherScope: CtrlTabScope = switcher.scope === 'all' ? 'workspace' : 'all'
   const rows: (RecentTabSwitcherItem | AllWorkspacesRecentTabItem)[] = switcher.items
 
+  // Why: Control is held, so a click that reached the app would be a Ctrl+click there.
+  // The layer takes every click, and a click outside the box cancels.
   return createPortal(
-    <div className="pointer-events-none fixed inset-0 z-[100] flex items-start justify-center pt-[12vh]">
+    <div
+      className="fixed inset-0 z-[100] flex items-start justify-center pt-[12vh]"
+      onMouseDown={(event) => event.preventDefault()}
+      onMouseUp={(event) => {
+        if (event.button === 0 && event.target === event.currentTarget) {
+          cancel()
+        }
+      }}
+      onContextMenu={(event) => event.preventDefault()}
+    >
       {/* Why: both scopes share one width so Ctrl+A does not move the box. */}
       <div
         className="w-[min(40rem,calc(100vw-3rem))] overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-floating"

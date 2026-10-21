@@ -5,7 +5,8 @@
  * Escape cancels, and the next Ctrl+Tab keeps the chosen scope. A workspace
  * that a sidebar click shows and a pane that takes focus count as visits too.
  * Agent chat and browser page rows open in their own workspace, and outside a
- * workspace view This workspace says why it has no list. The same gesture works
+ * workspace view This workspace says why it has no list. The open box takes every
+ * click, and a click outside it cancels without reaching the app. The same gesture works
  * when a browser page has the keyboard focus and its keys reach Orca only
  * through the main process. Writes the observed switcher states and screenshots
  * as a test artifact.
@@ -339,6 +340,34 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     expect(chatRows.rows[1].text).toContain('e2e-secondary')
     await page.keyboard.up('Control')
     await expect(switcher(page)).toHaveCount(0)
+    await expect(page.locator('[data-rendered-active-worktree-id]')).toHaveAttribute(
+      'data-rendered-active-worktree-id',
+      secondaryId
+    )
+    await expect(activeTab).toContainText('Switcher chat')
+
+    // The open box takes every click: a click on the box stays in it, and a click on the
+    // primary workspace's sidebar row closes the box without reaching the sidebar.
+    const sidebarRow = await worktreeRowSurface(page, primaryId).boundingBox()
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    const outsideClick = await readSwitcher(page)
+    steps.push({ step: 'click-outside-box', ...outsideClick })
+    if (!sidebarRow) {
+      throw new Error('the primary sidebar row is not on screen')
+    }
+    expect(sidebarRow.x + sidebarRow.width).toBeLessThan(outsideClick.box.x)
+    const boxTakesClicks = await switcher(page).evaluate((element) => {
+      const { x, y, width, height } = element.getBoundingClientRect()
+      return element.contains(document.elementFromPoint(x + width / 2, y + height / 2))
+    })
+    expect(boxTakesClicks).toBe(true)
+    await page.mouse.click(
+      sidebarRow.x + sidebarRow.width / 2,
+      sidebarRow.y + sidebarRow.height / 2
+    )
+    await expect(switcher(page)).toHaveCount(0)
+    await page.keyboard.up('Control')
     await expect(page.locator('[data-rendered-active-worktree-id]')).toHaveAttribute(
       'data-rendered-active-worktree-id',
       secondaryId
