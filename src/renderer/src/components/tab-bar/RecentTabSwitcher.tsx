@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { FileText, GitCompare, Globe2, TerminalSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '../../store'
+import type { AppState } from '@/store/types'
 import { activateCyclableTab } from '../../hooks/ipc-tab-switch'
 import { getShortcutPlatform } from '../../hooks/useShortcutLabel'
 import { formatKeybinding } from '../../../../shared/keybindings'
@@ -42,8 +43,6 @@ type SwitcherState =
     }
   | { scope: 'all'; items: AllWorkspacesRecentTabItem[]; selectedIndex: number }
 
-type AppStoreState = ReturnType<typeof useAppStore.getState>
-
 type SwitcherModel<T extends { key: string }> = { items: T[]; activeIndex: number }
 
 function consumeKeyboardEvent(event: KeyboardEvent): void {
@@ -68,7 +67,7 @@ function getNextSelectedIndex(
 
 // Why: the model is rebuilt on every press so tabs opened or closed mid-gesture are not stale.
 function buildSwitcherState(
-  store: AppStoreState,
+  store: AppState,
   scope: CtrlTabScope,
   previous: SwitcherState | null,
   direction: 1 | -1
@@ -332,20 +331,22 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
           ) : null}
           {rows.map((item, index) => {
             const selected = index === switcher.selectedIndex
+            // Why: hover is lighter than bg-accent, the dark selected surface, as hover does not select.
             return (
               <div
                 key={item.key}
                 ref={selected ? selectedRowRef : undefined}
                 role="option"
                 aria-selected={selected}
+                data-selected={selected}
                 onMouseUp={(event) => {
                   if (event.button === 0) {
                     commitRow(index)
                   }
                 }}
                 className={cn(
-                  'flex h-6 cursor-pointer items-center gap-1.5 px-2 text-xs text-foreground',
-                  selected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                  'jump-palette-item flex h-6 cursor-pointer items-center gap-1.5 px-2 text-xs text-foreground',
+                  !selected && 'hover:bg-accent/50'
                 )}
               >
                 <TabIcon item={item} />
