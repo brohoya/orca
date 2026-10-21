@@ -291,7 +291,7 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
     >
       {/* Why: both scopes share one width so Ctrl+A does not move the box. */}
       <div
-        className="w-[min(40rem,calc(100vw-3rem))] overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-floating"
+        className="w-[min(40rem,calc(100vw-3rem))] cursor-default overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-floating"
         role="listbox"
         aria-label={translate(
           'auto.components.tab.bar.RecentTabSwitcher.07ad4cd0b7',
@@ -342,7 +342,7 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
                   }
                 }}
                 className={cn(
-                  'flex h-6 items-center gap-1.5 px-2 text-xs text-foreground',
+                  'flex h-6 cursor-pointer items-center gap-1.5 px-2 text-xs text-foreground',
                   selected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
                 )}
               >
