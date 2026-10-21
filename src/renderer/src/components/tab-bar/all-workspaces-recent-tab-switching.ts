@@ -30,6 +30,7 @@ import { resolveWorktreeDisplayName } from '@/lib/worktree-default-display-name'
 import { getRepoHostIdentity } from '@/store/slices/repo-host-identity'
 import { getFolderWorkspaceWorktree } from '@/store/slices/worktrees/listing/detected-worktree-meta'
 import type { AppState } from '@/store/types'
+import { selectFolderWorkspaces, selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 import { buildWorktreeJumpPaletteWorktreeMaps } from '../worktree-jump-palette-worktree-maps'
 import type { OpenTabSearchResult } from './open-tab-search'
 import type { AgentSessionTabSwitchResult } from './open-tab-selection-routing'
@@ -95,8 +96,8 @@ function rowKey(kind: string, worktree: Worktree, id: string): string {
 
 function collectCandidates(state: AllWorkspacesRecentTabState): Candidate[] {
   const ownershipWorktrees = dedupePaletteWorktrees([
-    ...Object.values(state.worktreesByRepo).flat(),
-    ...state.folderWorkspaces.map(getFolderWorkspaceWorktree)
+    ...Object.values(selectWorktreesByRepo(state)).flat(),
+    ...selectFolderWorkspaces(state).map(getFolderWorkspaceWorktree)
   ])
   const worktrees = ownershipWorktrees.filter((worktree) => !worktree.isArchived)
   const scope = {
