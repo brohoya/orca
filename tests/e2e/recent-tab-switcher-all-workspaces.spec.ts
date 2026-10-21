@@ -1,16 +1,6 @@
 /**
- * E2E for the Ctrl+Tab switcher scope: a fresh profile lists only the current
- * workspace, Ctrl+A (Control still held) lists every workspace by last focus
- * without moving the box, releasing Control opens a tab in another workspace,
- * Escape cancels, and the next Ctrl+Tab keeps the chosen scope. A workspace
- * that a sidebar click shows and a pane that takes focus count as visits too.
- * Agent chat and browser page rows open in their own workspace, and outside a
- * workspace view This workspace says why it has no list. The open box takes every
- * click: a click on a row opens its tab, and a click outside the box cancels
- * without reaching the app. The same gesture works
- * when a browser page has the keyboard focus and its keys reach Orca only
- * through the main process. Writes the observed switcher states and screenshots
- * as a test artifact.
+ * E2E for the Ctrl+Tab switcher scopes (This workspace, All workspaces) with the keyboard, the
+ * mouse, and a focused browser page. Writes the switcher states and screenshots as artifacts.
  */
 
 import { writeFileSync } from 'node:fs'

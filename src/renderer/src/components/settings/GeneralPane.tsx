@@ -74,7 +74,7 @@ export function getTabOrderControlSearchKeywords(
   return getNavigationEntryKeywords(navigationEntries[0])
 }
 
-export function getTabScopeControlSearchKeywords(
+function getTabScopeControlSearchKeywords(
   navigationEntries: GeneralSearchEntry[] = getGeneralNavigationSearchEntries()
 ): string[] {
   return getNavigationEntryKeywords(navigationEntries[1])
