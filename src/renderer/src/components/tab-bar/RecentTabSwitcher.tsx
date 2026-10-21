@@ -194,6 +194,19 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
     }
   }, [setSwitcherState])
 
+  // Why: rows open on mouseup, as macOS turns a Ctrl+click into a context menu and sends no click.
+  const commitRow = useCallback(
+    (index: number): void => {
+      const current = switcherRef.current
+      if (!current) {
+        return
+      }
+      switcherRef.current = { ...current, selectedIndex: index }
+      commit()
+    },
+    [commit]
+  )
+
   const cancel = useCallback((): void => {
     setSwitcherState(null)
   }, [setSwitcherState])
@@ -325,9 +338,14 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
                 ref={selected ? selectedRowRef : undefined}
                 role="option"
                 aria-selected={selected}
+                onMouseUp={(event) => {
+                  if (event.button === 0) {
+                    commitRow(index)
+                  }
+                }}
                 className={cn(
                   'flex h-6 items-center gap-1.5 px-2 text-xs text-foreground',
-                  selected && 'bg-accent text-accent-foreground'
+                  selected ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
                 )}
               >
                 <TabIcon item={item} />
