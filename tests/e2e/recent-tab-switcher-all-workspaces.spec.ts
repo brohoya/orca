@@ -6,7 +6,8 @@
  * that a sidebar click shows and a pane that takes focus count as visits too.
  * Agent chat and browser page rows open in their own workspace, and outside a
  * workspace view This workspace says why it has no list. The open box takes every
- * click, and a click outside it cancels without reaching the app. The same gesture works
+ * click: a click on a row opens its tab, and a click outside the box cancels
+ * without reaching the app. The same gesture works
  * when a browser page has the keyboard focus and its keys reach Orca only
  * through the main process. Writes the observed switcher states and screenshots
  * as a test artifact.
@@ -391,15 +392,17 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     const pageRow = rowIndex(pageRows, 'Switcher page')
     expect(pageRow).toBeGreaterThan(1)
     expect(pageRows.rows[pageRow].text).not.toContain('e2e-secondary')
-    for (let index = 1; index < pageRow; index++) {
-      await page.keyboard.press('Tab')
+    // A click opens the row while Control is held; the release after it switches nothing.
+    const pageRowBox = await switcher(page).getByRole('option').nth(pageRow).boundingBox()
+    if (!pageRowBox) {
+      throw new Error('the browser page row is not on screen')
     }
-    await expect(switcher(page).getByRole('option').nth(pageRow)).toHaveAttribute(
-      'aria-selected',
-      'true'
+    await page.mouse.click(
+      pageRowBox.x + pageRowBox.width / 2,
+      pageRowBox.y + pageRowBox.height / 2
     )
-    await page.keyboard.up('Control')
     await expect(switcher(page)).toHaveCount(0)
+    await page.keyboard.up('Control')
     await expect(page.locator('[data-rendered-active-worktree-id]')).toHaveAttribute(
       'data-rendered-active-worktree-id',
       primaryId
