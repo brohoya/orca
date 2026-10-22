@@ -28,6 +28,7 @@ import {
   type AllWorkspacesRecentTabItem
 } from './all-workspaces-recent-tab-switching'
 import { activateOpenTabSearchResult } from './open-tab-selection-routing'
+import { getVisibleWorktreeShortcutTargets } from '../sidebar/visible-worktrees'
 import { ShortcutKeyCombo } from '../ShortcutKeyCombo'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
@@ -72,8 +73,13 @@ function buildSwitcherState(
   previous: SwitcherState | null,
   direction: 1 | -1
 ): SwitcherState | null {
+  const mode = normalizeCtrlTabOrderMode(store.settings?.ctrlTabOrderMode)
   if (scope === 'all') {
-    const model = buildAllWorkspacesRecentTabSwitcherModel(store) ?? { items: [], activeIndex: -1 }
+    const model = buildAllWorkspacesRecentTabSwitcherModel(store, {
+      mode,
+      // Why: Tab strip order puts the workspaces in the rendered sidebar order, as Cmd+1-9 do.
+      sidebarOrder: mode === 'sequential' ? getVisibleWorktreeShortcutTargets() : []
+    }) ?? { items: [], activeIndex: -1 }
     return {
       scope,
       items: model.items,
@@ -84,11 +90,10 @@ function buildSwitcherState(
     return null
   }
   // Why: a single-tab workspace still opens the switcher so Ctrl+A can reach the other workspaces.
-  const model = buildRecentTabSwitcherModel(
-    store,
-    store.activeWorktreeId,
-    normalizeCtrlTabOrderMode(store.settings?.ctrlTabOrderMode)
-  ) ?? { items: [], activeIndex: -1 }
+  const model = buildRecentTabSwitcherModel(store, store.activeWorktreeId, mode) ?? {
+    items: [],
+    activeIndex: -1
+  }
   return {
     scope,
     items: model.items,
