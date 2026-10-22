@@ -315,7 +315,7 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
             {scopeLabel(otherScope)}
           </span>
         </div>
-        <div className="max-h-[min(18rem,60vh)] overflow-hidden py-0.5">
+        <div className="max-h-[min(18rem,60vh)] overflow-y-auto scrollbar-sleek py-0.5">
           {rows.length === 0 ? (
             <div className="flex h-6 items-center px-2 text-xs text-muted-foreground">
               {switcher.scope === 'workspace' && switcher.outsideWorkspace
