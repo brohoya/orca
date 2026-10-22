@@ -497,4 +497,87 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
       contentType: 'application/json'
     })
   })
+
+  test('a long list keeps the selected row in view and scrolls with the wheel', async ({
+    orcaPage
+  }, testInfo) => {
+    const page = orcaPage
+    await waitForSessionReady(page)
+    const worktreeId = await waitForActiveWorktree(page)
+    await ensureTerminalVisible(page)
+    await page.evaluate(async () => {
+      await window.__store!.getState().updateSettings({ uiLanguage: 'en' })
+    })
+    await page.evaluate((wId) => {
+      const state = window.__store!.getState()
+      for (let index = 1; index <= 15; index++) {
+        state.createBrowserTab(wId, 'about:blank', { title: `Long list ${index}`, activate: false })
+      }
+    }, worktreeId)
+    const measure = () =>
+      switcher(page).evaluate((element) => {
+        const list = element.children[1]
+        if (!list) {
+          throw new Error('the switcher has no row list')
+        }
+        const rows = [...list.querySelectorAll('[role="option"]')]
+        const selected = rows.findIndex((row) => row.getAttribute('aria-selected') === 'true')
+        const listBox = list.getBoundingClientRect()
+        const rowBox = rows[selected]?.getBoundingClientRect()
+        return {
+          rows: rows.length,
+          selected,
+          inView:
+            rowBox !== undefined &&
+            rowBox.top >= listBox.top - 0.5 &&
+            rowBox.bottom <= listBox.bottom + 0.5,
+          scrollTop: list.scrollTop,
+          scrollHeight: list.scrollHeight,
+          clientHeight: list.clientHeight
+        }
+      })
+    const steps: ({ step: string } & Awaited<ReturnType<typeof measure>>)[] = []
+    const record = async (step: string): Promise<Awaited<ReturnType<typeof measure>>> => {
+      const state = await measure()
+      steps.push({ step, ...state })
+      return state
+    }
+
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    const opened = await record('open')
+    // Why: the check means nothing unless the list is taller than the box.
+    expect(opened.scrollHeight).toBeGreaterThan(opened.clientHeight)
+
+    // Each Tab press keeps the selected row inside the box, down to the last row.
+    for (let index = opened.selected; index < opened.rows - 1; index++) {
+      await page.keyboard.press('Tab')
+      expect(await measure()).toMatchObject({ selected: index + 1, inView: true })
+    }
+    await record('last row')
+    await page.keyboard.press('Tab')
+    const wrapped = await record('wrapped to the first row')
+    expect(wrapped).toMatchObject({ selected: 0, inView: true })
+
+    // The wheel scrolls the list and leaves the selection where it is.
+    const listBox = await switcher(page).locator(':scope > div').nth(1).boundingBox()
+    if (!listBox) {
+      throw new Error('the switcher list is not on screen')
+    }
+    await page.mouse.move(listBox.x + listBox.width / 2, listBox.y + listBox.height / 2)
+    await page.mouse.wheel(0, 400)
+    await expect.poll(async () => (await measure()).scrollTop).toBeGreaterThan(wrapped.scrollTop)
+    expect((await record('wheel')).selected).toBe(0)
+    await switcher(page).screenshot({ path: testInfo.outputPath('switcher-long-list.png') })
+    await page.keyboard.press('Escape')
+    await expect(switcher(page)).toHaveCount(0)
+    await page.keyboard.up('Control')
+
+    const reportPath = testInfo.outputPath('recent-tab-switcher-long-list.json')
+    writeFileSync(reportPath, `${JSON.stringify({ steps }, null, 2)}\n`)
+    await testInfo.attach('switcher-long-list', {
+      path: reportPath,
+      contentType: 'application/json'
+    })
+  })
 })
