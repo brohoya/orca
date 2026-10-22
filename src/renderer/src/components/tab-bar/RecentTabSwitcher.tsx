@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FileText, GitCompare, Globe2, TerminalSquare } from 'lucide-react'
+import { FileText, GitCompare, Globe2, Smartphone, TerminalSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '../../store'
 import type { AppState } from '@/store/types'
@@ -30,6 +30,7 @@ import {
 import { activateOpenTabSearchResult } from './open-tab-selection-routing'
 import { getVisibleWorktreeShortcutTargets } from '../sidebar/visible-worktrees'
 import { ShortcutKeyCombo } from '../ShortcutKeyCombo'
+import { AgentIcon } from '@/lib/agent-catalog'
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
@@ -115,14 +116,25 @@ function commitAllWorkspacesItem(item: AllWorkspacesRecentTabItem): void {
 function TabIcon({
   item
 }: {
-  item: Pick<RecentTabSwitcherItem, 'type' | 'contentType'>
+  item: Pick<RecentTabSwitcherItem, 'type' | 'contentType' | 'agent'>
 }): React.JSX.Element {
   const className = 'size-3.5 shrink-0 text-muted-foreground'
-  if (item.type === 'terminal') {
+  if (item.agent) {
+    return (
+      <span className="inline-flex shrink-0" data-agent-icon={item.agent} aria-hidden="true">
+        <AgentIcon agent={item.agent} size={14} />
+      </span>
+    )
+  }
+  // Why: like the tab strip, a chat whose agent is unknown shows the terminal glyph.
+  if (item.type === 'terminal' || item.type === 'agent-session') {
     return <TerminalSquare className={className} />
   }
   if (item.type === 'browser') {
     return <Globe2 className={className} />
+  }
+  if (item.type === 'simulator') {
+    return <Smartphone className={className} />
   }
   if (
     item.contentType === 'diff' ||

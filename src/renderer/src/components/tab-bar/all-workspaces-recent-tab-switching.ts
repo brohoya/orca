@@ -6,6 +6,7 @@ import type {
   TabContentType,
   WorkspaceVisibleTabType
 } from '../../../../shared/tab-types'
+import type { TerminalAgent } from '../../../../shared/terminal-agent'
 import { orderRecentWorkspaceTabs } from '@/lib/recent-workspace-tab-rows'
 import type { AppState } from '@/store/types'
 import type { VisibleWorktreeShortcutTarget } from '../sidebar/visible-worktrees'
@@ -22,6 +23,8 @@ export type AllWorkspacesRecentTabItem = {
   type: WorkspaceVisibleTabType
   contentType: TabContentType
   isDirty: boolean
+  /** The chat's provider, or the agent that runs in a terminal; drives the row icon. */
+  agent: TerminalAgent | null
   result: OpenTabSearchResult | AgentSessionTabSwitchResult
 }
 

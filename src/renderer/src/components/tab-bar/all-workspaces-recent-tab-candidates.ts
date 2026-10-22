@@ -4,6 +4,7 @@
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import { resolveUnifiedTabLabel } from '../../../../shared/tab-title-resolution'
 import type { Worktree } from '../../../../shared/worktree/types'
+import { agentTypeToIconAgent } from '@/lib/agent-status'
 import { buildSearchableBrowserPages } from '@/lib/browser-palette-page-entries'
 import { formatBrowserPaletteUrl } from '@/lib/browser-palette-search'
 import {
@@ -109,6 +110,7 @@ export function collectAllWorkspacesRecentTabCandidates(
         type: entry.tab.contentType === 'terminal' ? 'terminal' : 'editor',
         contentType: entry.tab.contentType,
         isDirty: entry.tab.contentType !== 'terminal' && dirtyFileIds.has(entry.tab.entityId),
+        agent: entry.tab.contentType === 'terminal' ? entry.occupantAgent : null,
         result: {
           source: 'workspace',
           executionHostId:
@@ -152,6 +154,7 @@ export function collectAllWorkspacesRecentTabCandidates(
         type: 'browser',
         contentType: 'browser',
         isDirty: false,
+        agent: null,
         result: {
           source: 'browser',
           executionHostId: entry.executionHostId ?? LOCAL_EXECUTION_HOST_ID,
@@ -187,6 +190,7 @@ export function collectAllWorkspacesRecentTabCandidates(
         type: 'simulator',
         contentType: 'simulator',
         isDirty: false,
+        agent: null,
         result: {
           source: 'simulator',
           executionHostId:
@@ -242,6 +246,7 @@ export function collectAllWorkspacesRecentTabCandidates(
             type: 'agent-session',
             contentType: 'agent-session',
             isDirty: false,
+            agent: agentTypeToIconAgent(tab.agentSessionAgent),
             result: {
               source: 'agent-session',
               executionHostId:

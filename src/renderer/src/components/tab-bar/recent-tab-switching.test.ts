@@ -37,11 +37,16 @@ function stateWithTabs(
   | 'activeGroupIdByWorktree'
   | 'activeTabId'
   | 'activeTabType'
+  | 'agentStatusByPaneKey'
   | 'browserTabsByWorktree'
   | 'groupsByWorktree'
   | 'openFiles'
+  | 'paneForegroundAgentByPaneKey'
+  | 'retainedAgentsByPaneKey'
+  | 'sleepingAgentSessionsByPaneKey'
   | 'tabBarOrderByWorktree'
   | 'tabsByWorktree'
+  | 'terminalLayoutsByTabId'
   | 'unifiedTabsByWorktree'
 > {
   // Why: only tabs the group actually holds — a group tab missing from tabOrder is a hydration
@@ -57,6 +62,7 @@ function stateWithTabs(
     activeGroupIdByWorktree: { [WT]: GROUP },
     activeTabId: null,
     activeTabType: 'editor',
+    agentStatusByPaneKey: {},
     browserTabsByWorktree: {},
     groupsByWorktree: {
       [WT]: [{ id: GROUP, worktreeId: WT, activeTabId, tabOrder, recentTabIds }]
@@ -65,8 +71,12 @@ function stateWithTabs(
       id: entry.entityId,
       worktreeId: WT
     })) as AppState['openFiles'],
+    paneForegroundAgentByPaneKey: {},
+    retainedAgentsByPaneKey: {},
+    sleepingAgentSessionsByPaneKey: {},
     tabBarOrderByWorktree: {},
     tabsByWorktree: {},
+    terminalLayoutsByTabId: {},
     unifiedTabsByWorktree: { [WT]: tabs }
   }
 }

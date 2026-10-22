@@ -6,6 +6,10 @@ import type {
   TabGroup
 } from '../../../../shared/tab-types'
 import { resolveUnifiedTabLabel } from '../../../../shared/tab-title-resolution'
+import type { TerminalAgent } from '../../../../shared/terminal-agent'
+import type { TerminalTab } from '../../../../shared/terminal-tab-types'
+import { agentTypeToIconAgent } from '@/lib/agent-status'
+import { resolveOpenTabOccupantAgent } from '@/lib/open-tab-occupant-agent'
 import type { AppState } from '../../store/types'
 import { sanitizeRecentTabIds } from '../../store/slices/tab-group-state'
 import { getActiveTabNavOrder, type VisibleTabRef } from './group-tab-order'
@@ -16,6 +20,8 @@ export type RecentTabSwitcherItem = TypeCyclableTab & {
   label: string
   contentType: TabContentType
   isDirty: boolean
+  /** The chat's provider, or the agent that runs in a terminal; drives the row icon. */
+  agent: TerminalAgent | null
 }
 
 export type RecentTabSwitcherModel = {
@@ -30,11 +36,16 @@ type RecentTabSwitchingState = Pick<
   | 'activeGroupIdByWorktree'
   | 'activeTabId'
   | 'activeTabType'
+  | 'agentStatusByPaneKey'
   | 'browserTabsByWorktree'
   | 'groupsByWorktree'
   | 'openFiles'
+  | 'paneForegroundAgentByPaneKey'
+  | 'retainedAgentsByPaneKey'
+  | 'sleepingAgentSessionsByPaneKey'
   | 'tabBarOrderByWorktree'
   | 'tabsByWorktree'
+  | 'terminalLayoutsByTabId'
   | 'unifiedTabsByWorktree'
 > & { settings?: AppState['settings'] }
 
@@ -103,19 +114,50 @@ function getTabLabel(
   return resolveUnifiedTabLabel(tab, generatedTitlesEnabled, fallback)
 }
 
+// Why: the same identity check as the tab strip and Cmd+J, so an agent terminal shows its agent icon.
+function resolveRowAgent(
+  state: RecentTabSwitchingState,
+  entry: VisibleTabRef,
+  backingTab: Tab | undefined,
+  terminalTab: TerminalTab | undefined,
+  label: string
+): TerminalAgent | null {
+  if (entry.type === 'agent-session') {
+    return agentTypeToIconAgent(backingTab?.agentSessionAgent)
+  }
+  if (entry.type !== 'terminal') {
+    return null
+  }
+  return resolveOpenTabOccupantAgent({
+    tabId: entry.id,
+    title: label,
+    defaultTitle: terminalTab?.defaultTitle,
+    launchAgent: terminalTab?.launchAgent,
+    layout: state.terminalLayoutsByTabId[entry.id],
+    agentStatusByPaneKey: state.agentStatusByPaneKey,
+    retainedAgentsByPaneKey: state.retainedAgentsByPaneKey,
+    sleepingAgentSessionsByPaneKey: state.sleepingAgentSessionsByPaneKey,
+    paneForegroundAgentByPaneKey: state.paneForegroundAgentByPaneKey
+  })
+}
+
 function toSwitcherItem(
+  state: RecentTabSwitchingState,
   entry: VisibleTabRef,
   tabById: ReadonlyMap<string, Tab>,
+  terminalTabById: ReadonlyMap<string, TerminalTab>,
   dirtyFileIds: ReadonlySet<string>,
   generatedTitlesEnabled: boolean
 ): RecentTabSwitcherItem {
   const backingTab = entry.tabId ? tabById.get(entry.tabId) : undefined
+  const label = getTabLabel(backingTab, generatedTitlesEnabled, entry.id)
   return {
     ...entry,
     key: getVisibleTabKey(entry),
-    label: getTabLabel(backingTab, generatedTitlesEnabled, entry.id),
+    label,
     contentType: backingTab?.contentType ?? (entry.type === 'editor' ? 'editor' : entry.type),
-    isDirty: entry.type === 'editor' && dirtyFileIds.has(entry.id)
+    isDirty: entry.type === 'editor' && dirtyFileIds.has(entry.id),
+    agent: resolveRowAgent(state, entry, backingTab, terminalTabById.get(entry.id), label)
   }
 }
 
@@ -172,6 +214,9 @@ export function buildRecentTabSwitcherModel(
   const tabById = new Map(
     (state.unifiedTabsByWorktree[worktreeId] ?? []).map((tab) => [tab.id, tab])
   )
+  const terminalTabById = new Map(
+    (state.tabsByWorktree[worktreeId] ?? []).map((tab) => [tab.id, tab])
+  )
   const dirtyFileIds = new Set(
     state.openFiles
       .filter((file) => file.worktreeId === worktreeId && file.isDirty)
@@ -180,7 +225,14 @@ export function buildRecentTabSwitcherModel(
   const generatedTitlesEnabled = state.settings?.tabAutoGenerateTitle === true
   const itemByKey = new Map(
     visibleEntries.map((entry) => {
-      const item = toSwitcherItem(entry, tabById, dirtyFileIds, generatedTitlesEnabled)
+      const item = toSwitcherItem(
+        state,
+        entry,
+        tabById,
+        terminalTabById,
+        dirtyFileIds,
+        generatedTitlesEnabled
+      )
       return [item.key, item] as const
     })
   )
