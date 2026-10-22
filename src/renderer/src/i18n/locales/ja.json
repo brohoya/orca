@@ -10242,11 +10242,7 @@
             "close": "近い",
             "omp": "OMP",
             "nodeDistMirror": "ミラー",
-            "nodeDistNodejs": "nodejs",
-            "tab_scope": "タブのスコープ",
-            "tab_scope_short": "このワークスペースまたはすべてのワークスペース。",
-            "workspaces": "ワークスペース",
-            "projects": "プロジェクト"
+            "nodeDistNodejs": "nodejs"
           }
         },
         "git": {
@@ -13107,12 +13103,6 @@
           "searchLabel": "ビルドの検索",
           "searchPlaceholder": "ビルドを検索…",
           "noMatches": "一致するビルドはありません。"
-        },
-        "RecentTabScopeControl": {
-          "title": "タブのスコープ",
-          "description": "このワークスペースまたはすべてのワークスペース。スイッチャーでも変更できます。",
-          "workspace": "このワークスペース",
-          "all": "すべてのワークスペース"
         }
       },
       "right": {

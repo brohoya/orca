@@ -400,13 +400,8 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     // Why: by id, because the loaded page renames its tab to "New Tab".
     await expect(page.locator(`[data-tab-id="${browserTabId}"][data-active="true"]`)).toBeVisible()
 
-    // Settings shows the scope that the switcher stored.
-    await page.evaluate(() => window.__store!.getState().openSettingsPage())
-    await page.getByPlaceholder('Search settings').fill('tab scope')
-    const scopeSelect = page.getByRole('combobox', { name: 'Tab Scope' })
-    await expect(scopeSelect).toHaveText('All workspaces')
-
     // Outside a workspace view This workspace has no list, so the switcher says why.
+    await page.evaluate(() => window.__store!.getState().openSettingsPage())
     await page.keyboard.down('Control')
     await page.keyboard.press('Tab')
     await expect(switcher(page)).toContainText('Switch Tab · All workspaces')
@@ -420,8 +415,11 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     await page.keyboard.press('Escape')
     await expect(switcher(page)).toHaveCount(0)
     await page.keyboard.up('Control')
-    // The toggle saves the scope even where it has no list to show.
-    await expect(scopeSelect).toHaveText('This workspace')
+    // The toggle keeps the new scope even where it has no list to show.
+    await page.evaluate(() => window.__store!.getState().closeSettingsPage())
+    const keptScope = await peekSwitcher(page)
+    steps.push({ step: 'kept-scope', ...keptScope })
+    expect(keptScope.title).toBe('Switch Tab · This workspace')
 
     const reportPath = testInfo.outputPath('recent-tab-switcher-all-workspaces.json')
     writeFileSync(reportPath, `${JSON.stringify({ steps }, null, 2)}\n`)

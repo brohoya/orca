@@ -136,22 +136,6 @@ export const getGeneralNavigationSearchEntries = createLocalizedCatalog(() => [
     ]
   },
   {
-    title: translate('auto.components.settings.general.search.tab_scope', 'Tab Scope'),
-    description: translate(
-      'auto.components.settings.general.search.tab_scope_short',
-      'This workspace or all workspaces.'
-    ),
-    keywords: [
-      ...translateSearchKeyword('auto.components.settings.general.search.2a254b725e', 'tab'),
-      ...translateSearchKeyword('auto.components.settings.general.search.fe62b3f09f', 'ctrl'),
-      ...translateSearchKeyword('auto.components.settings.general.search.750420dd9a', 'control'),
-      ...translateSearchKeyword('auto.components.settings.general.search.fb84767421', 'switch'),
-      ...translateSearchKeyword('auto.components.settings.general.search.54ba13831a', 'recent'),
-      ...translateSearchKeyword('auto.components.settings.general.search.workspaces', 'workspaces'),
-      ...translateSearchKeyword('auto.components.settings.general.search.projects', 'projects')
-    ]
-  },
-  {
     title: translate(
       'auto.components.settings.GeneralPane.editor_preview_tabs',
       'Reuse a preview tab when browsing files'

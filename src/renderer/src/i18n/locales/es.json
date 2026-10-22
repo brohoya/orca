@@ -10236,11 +10236,7 @@
             "confirm": "confirmar",
             "omp": "OMP",
             "nodeDistMirror": "espejo",
-            "nodeDistNodejs": "nodejs",
-            "tab_scope": "Alcance de pestañas",
-            "tab_scope_short": "Este espacio de trabajo o todos los espacios de trabajo.",
-            "workspaces": "espacios de trabajo",
-            "projects": "proyectos"
+            "nodeDistNodejs": "nodejs"
           }
         },
         "git": {
@@ -13123,12 +13119,6 @@
           "searchLabel": "Buscar compilaciones",
           "noMatches": "No hay compilaciones coincidentes.",
           "searchPlaceholder": "Buscar compilaciones…"
-        },
-        "RecentTabScopeControl": {
-          "title": "Alcance de pestañas",
-          "description": "Este espacio de trabajo o todos los espacios de trabajo. El selector también puede cambiarlo.",
-          "workspace": "Este espacio de trabajo",
-          "all": "Todos los espacios de trabajo"
         }
       },
       "right": {
