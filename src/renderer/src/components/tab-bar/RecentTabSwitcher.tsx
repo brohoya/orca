@@ -28,7 +28,7 @@ import {
   type AllWorkspacesRecentTabItem
 } from './all-workspaces-recent-tab-switching'
 import { activateOpenTabSearchResult } from './open-tab-selection-routing'
-import { focusTabInOtherPane } from './switcher-pane-focus'
+import { focusEditorInOtherPane, focusTabInOtherPane } from './switcher-pane-focus'
 import { getVisibleWorktreeShortcutTargets } from '../sidebar/visible-worktrees'
 import { ShortcutKeyCombo } from '../ShortcutKeyCombo'
 import { AgentIcon } from '@/lib/agent-catalog'
@@ -104,6 +104,9 @@ function buildSwitcherState(
 }
 
 function commitAllWorkspacesItem(item: AllWorkspacesRecentTabItem): void {
+  const store = useAppStore.getState()
+  const worktreeId = store.activeWorktreeId
+  const paneBefore = worktreeId ? store.activeGroupIdByWorktree[worktreeId] : undefined
   const outcome = activateOpenTabSearchResult(item.result)
   if (outcome.status === 'failed') {
     toast.error(outcome.message)
@@ -111,6 +114,9 @@ function commitAllWorkspacesItem(item: AllWorkspacesRecentTabItem): void {
   }
   if (outcome.status === 'activated') {
     outcome.focus?.()
+    if (item.type === 'editor' && worktreeId) {
+      focusEditorInOtherPane(worktreeId, paneBefore)
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 /**
  * E2E for the Ctrl+Tab switcher scopes (This workspace, All workspaces): the keyboard, the mouse,
- * a focused browser page or terminal, long lists, and Tab strip order. Writes the switcher states
- * and screenshots as artifacts.
+ * a focused browser page or terminal, split panes, long lists, and Tab strip order. Writes the
+ * switcher states and screenshots as artifacts.
  */
 
 import { writeFileSync } from 'node:fs'
@@ -723,7 +723,7 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     expect((await shellInput()).split('\x01')).toHaveLength(2)
   })
 
-  test('This workspace lists every pane, and the release moves to the pane of the tab', async ({
+  test('This workspace lists every pane, and both lists move the focus to the pane of the tab', async ({
     orcaPage
   }, testInfo) => {
     const page = orcaPage
@@ -788,8 +788,20 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     ).toContainText('index.ts')
     await expect.poll(focusedPane).toBe(panes.leftGroupId)
 
+    // All workspaces opens rows through Cmd+J's path; the editor in the right pane must get the keys too.
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('a')
+    await expect(switcher(page)).toContainText('Switch Tab · All workspaces')
+    const allPanes = await readSwitcher(page)
+    expect(rowNames(allPanes)).toEqual(['index.ts', 'package.json', 'Terminal 1'])
+    expect(allPanes.rows[1].selected).toBe(true)
+    await page.keyboard.up('Control')
+    await expect(switcher(page)).toHaveCount(0)
+    await expect.poll(focusedPane).toBe(panes.rightGroupId)
+
     const reportPath = testInfo.outputPath('recent-tab-switcher-two-panes.json')
-    writeFileSync(reportPath, `${JSON.stringify({ panes, bothPanes }, null, 2)}\n`)
+    writeFileSync(reportPath, `${JSON.stringify({ panes, bothPanes, allPanes }, null, 2)}\n`)
     await testInfo.attach('switcher-two-panes', {
       path: reportPath,
       contentType: 'application/json'
