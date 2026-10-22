@@ -10578,11 +10578,7 @@
             "command": "command",
             "confirm": "confirm",
             "close": "close",
-            "omp": "OMP",
-            "tab_scope": "Tab Scope",
-            "tab_scope_short": "This workspace or all workspaces.",
-            "workspaces": "workspaces",
-            "projects": "projects"
+            "omp": "OMP"
           }
         },
         "git": {
@@ -13436,12 +13432,6 @@
           "manualDeleteWarning": "Only do this if no other machine sharing this home runs Orca for this profile.",
           "close": "Close",
           "reclaimedNotStarted": "The lock was cleared, but Orca’s server did not start."
-        },
-        "RecentTabScopeControl": {
-          "title": "Tab Scope",
-          "description": "This workspace or all workspaces. The switcher can also change it.",
-          "workspace": "This workspace",
-          "all": "All workspaces"
         }
       },
       "right": {

@@ -10208,11 +10208,7 @@
             "close": "关闭",
             "omp": "OMP",
             "nodeDistMirror": "镜像",
-            "nodeDistNodejs": "nodejs",
-            "tab_scope": "选项卡范围",
-            "tab_scope_short": "此工作区或所有工作区。",
-            "workspaces": "工作区",
-            "projects": "项目"
+            "nodeDistNodejs": "nodejs"
           }
         },
         "git": {
@@ -13106,12 +13102,6 @@
           "searchPlaceholder": "搜索构建...",
           "noMatches": "没有匹配的版本。",
           "searchLabel": "搜索构建"
-        },
-        "RecentTabScopeControl": {
-          "title": "选项卡范围",
-          "description": "此工作区或所有工作区。也可以在切换器中更改。",
-          "workspace": "此工作区",
-          "all": "所有工作区"
         }
       },
       "right": {

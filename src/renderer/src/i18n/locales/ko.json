@@ -10208,11 +10208,7 @@
             "close": "닫다",
             "omp": "OMP",
             "nodeDistMirror": "미러",
-            "nodeDistNodejs": "nodejs",
-            "tab_scope": "탭 범위",
-            "tab_scope_short": "이 워크스페이스 또는 모든 워크스페이스.",
-            "workspaces": "워크스페이스",
-            "projects": "프로젝트"
+            "nodeDistNodejs": "nodejs"
           }
         },
         "git": {
@@ -13106,12 +13102,6 @@
           "noMatches": "일치하는 빌드가 없습니다.",
           "searchPlaceholder": "빌드 검색…",
           "searchLabel": "빌드 검색"
-        },
-        "RecentTabScopeControl": {
-          "title": "탭 범위",
-          "description": "이 워크스페이스 또는 모든 워크스페이스. 전환기에서도 변경할 수 있습니다.",
-          "workspace": "이 워크스페이스",
-          "all": "모든 워크스페이스"
         }
       },
       "right": {

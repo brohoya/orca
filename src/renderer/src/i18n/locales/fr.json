@@ -10425,11 +10425,7 @@
             "close": "fermer",
             "omp": "OMP",
             "nodeDistMirror": "miroir",
-            "nodeDistNodejs": "nodejs",
-            "tab_scope": "Portée des onglets",
-            "tab_scope_short": "Cet espace de travail ou tous les espaces de travail.",
-            "workspaces": "espaces de travail",
-            "projects": "projets"
+            "nodeDistNodejs": "nodejs"
           }
         },
         "git": {
@@ -13266,12 +13262,6 @@
           "searchPlaceholder": "Rechercher des versions…",
           "searchLabel": "Rechercher des versions",
           "noMatches": "Aucune version correspondante."
-        },
-        "RecentTabScopeControl": {
-          "title": "Portée des onglets",
-          "description": "Cet espace de travail ou tous les espaces de travail. Le sélecteur peut aussi la modifier.",
-          "workspace": "Cet espace de travail",
-          "all": "Tous les espaces de travail"
         }
       },
       "right": {

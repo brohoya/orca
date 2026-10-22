@@ -17,8 +17,6 @@ import {
 } from './general-search'
 import { getGeneralProjectRuntimeSearchEntries } from './general-project-runtime-search'
 import { RecentTabOrderControl } from './RecentTabOrderControl'
-import { RecentTabScopeControl } from './RecentTabScopeControl'
-import { normalizeCtrlTabScope } from '../tab-bar/recent-tab-switching'
 import { SettingsSectionStack } from './SettingsSectionStack'
 import { matchesSettingsSearch, type SettingsSearchEntry } from './settings-search'
 import { SearchableSetting } from './SearchableSetting'
@@ -64,20 +62,17 @@ export function shouldShowProjectRuntimeSection(
   )
 }
 
-function getNavigationEntryKeywords(entry: GeneralSearchEntry | undefined): string[] {
-  return entry ? [entry.title, entry.description ?? '', ...(entry.keywords ?? [])] : []
-}
-
 export function getTabOrderControlSearchKeywords(
   navigationEntries: GeneralSearchEntry[] = getGeneralNavigationSearchEntries()
 ): string[] {
-  return getNavigationEntryKeywords(navigationEntries[0])
-}
-
-function getTabScopeControlSearchKeywords(
-  navigationEntries: GeneralSearchEntry[] = getGeneralNavigationSearchEntries()
-): string[] {
-  return getNavigationEntryKeywords(navigationEntries[1])
+  const tabOrderSearchEntry = navigationEntries[0]
+  return tabOrderSearchEntry
+    ? [
+        tabOrderSearchEntry.title,
+        tabOrderSearchEntry.description ?? '',
+        ...(tabOrderSearchEntry.keywords ?? [])
+      ]
+    : []
 }
 
 const EMPTY_WSL_DISTROS: string[] = []
@@ -123,7 +118,6 @@ export function GeneralPane({
       activeRuntimeTarget.environmentId === sourceDefaultsSupportedRuntimeEnvironmentId)
   const generalNavigationSearchEntries = getGeneralNavigationSearchEntries()
   const tabOrderKeywords = getTabOrderControlSearchKeywords(generalNavigationSearchEntries)
-  const tabScopeKeywords = getTabScopeControlSearchKeywords(generalNavigationSearchEntries)
   const projectRuntimeSearchEntries = wslSupportedPlatform
     ? getGeneralProjectRuntimeSearchEntries()
     : []
@@ -137,11 +131,6 @@ export function GeneralPane({
         <RecentTabOrderControl
           ctrlTabOrderMode={settings.ctrlTabOrderMode ?? 'mru'}
           keywords={tabOrderKeywords}
-          updateSettings={updateSettings}
-        />
-        <RecentTabScopeControl
-          ctrlTabScope={normalizeCtrlTabScope(settings.ctrlTabScope)}
-          keywords={tabScopeKeywords}
           updateSettings={updateSettings}
         />
         <SearchableSetting
