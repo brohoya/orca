@@ -28,6 +28,7 @@ import {
   type AllWorkspacesRecentTabItem
 } from './all-workspaces-recent-tab-switching'
 import { activateOpenTabSearchResult } from './open-tab-selection-routing'
+import { focusTabInOtherPane } from './switcher-pane-focus'
 import { getVisibleWorktreeShortcutTargets } from '../sidebar/visible-worktrees'
 import { ShortcutKeyCombo } from '../ShortcutKeyCombo'
 import { AgentIcon } from '@/lib/agent-catalog'
@@ -206,7 +207,13 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
     }
     const selected = current?.items[current.selectedIndex]
     if (selected) {
-      activateCyclableTab(useAppStore.getState(), selected)
+      const store = useAppStore.getState()
+      const worktreeId = store.activeWorktreeId
+      const paneBefore = worktreeId ? store.activeGroupIdByWorktree[worktreeId] : undefined
+      activateCyclableTab(store, selected)
+      if (worktreeId) {
+        focusTabInOtherPane(worktreeId, selected, paneBefore)
+      }
     }
   }, [setSwitcherState])
 

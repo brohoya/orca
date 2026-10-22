@@ -722,4 +722,77 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     await expect.poll(shellInput).toContain('\x01')
     expect((await shellInput()).split('\x01')).toHaveLength(2)
   })
+
+  test('This workspace lists every pane, and the release moves to the pane of the tab', async ({
+    orcaPage
+  }, testInfo) => {
+    const page = orcaPage
+    await waitForSessionReady(page)
+    const worktreeId = await waitForActiveWorktree(page)
+    await ensureTerminalVisible(page)
+    await page.evaluate(async () => {
+      await window.__store!.getState().updateSettings({ uiLanguage: 'en' })
+    })
+    // index.ts stays in the first pane with Terminal 1; package.json is dropped on its right edge.
+    await openSeededFile(page, worktreeId, 'src/index.ts')
+    await openSeededFile(page, worktreeId, 'package.json')
+    const panes = await page.evaluate((wId) => {
+      const state = window.__store!.getState()
+      const packageTab = (state.unifiedTabsByWorktree[wId] ?? []).find(
+        (tab) => tab.contentType === 'editor' && tab.entityId.endsWith('package.json')
+      )
+      if (!packageTab) {
+        throw new Error('package.json did not open')
+      }
+      const leftGroupId = packageTab.groupId
+      state.dropUnifiedTab(packageTab.id, { groupId: leftGroupId, splitDirection: 'right' })
+      const rightGroupId = window
+        .__store!.getState()
+        .unifiedTabsByWorktree[wId]?.find((tab) => tab.id === packageTab.id)?.groupId
+      if (!rightGroupId || rightGroupId === leftGroupId) {
+        throw new Error('the workspace did not split')
+      }
+      return { leftGroupId, rightGroupId }
+    }, worktreeId)
+    const paneEditor = (groupId: string) =>
+      page.locator(`[data-tab-group-body-id="${groupId}"] .monaco-editor`).first()
+    await expect(paneEditor(panes.leftGroupId)).toBeVisible()
+    await expect(paneEditor(panes.rightGroupId)).toBeVisible()
+    // Focus history: a click in the left pane (index.ts), then in the right pane (package.json).
+    await paneEditor(panes.leftGroupId).click()
+    await paneEditor(panes.rightGroupId).click()
+    const focusedPane = () =>
+      page.evaluate(
+        () =>
+          document.activeElement
+            ?.closest('[data-tab-group-body-id]')
+            ?.getAttribute('data-tab-group-body-id') ?? null
+      )
+    await expect.poll(focusedPane).toBe(panes.rightGroupId)
+
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    const bothPanes = await readSwitcher(page)
+    expect(bothPanes.title).toBe('Switch Tab · This workspace')
+    expect(rowNames(bothPanes)).toEqual(['package.json', 'index.ts', 'Terminal 1'])
+    expect(bothPanes.rows[1].selected).toBe(true)
+    await switcher(page).screenshot({ path: testInfo.outputPath('switcher-two-panes.png') })
+    await page.keyboard.up('Control')
+    await expect(switcher(page)).toHaveCount(0)
+
+    // The left pane shows index.ts and has the keyboard focus.
+    await expect(
+      page.locator(
+        `[data-tab-group-strip-id="${panes.leftGroupId}"] [data-tab-id][data-active="true"]`
+      )
+    ).toContainText('index.ts')
+    await expect.poll(focusedPane).toBe(panes.leftGroupId)
+
+    const reportPath = testInfo.outputPath('recent-tab-switcher-two-panes.json')
+    writeFileSync(reportPath, `${JSON.stringify({ panes, bothPanes }, null, 2)}\n`)
+    await testInfo.attach('switcher-two-panes', {
+      path: reportPath,
+      contentType: 'application/json'
+    })
+  })
 })

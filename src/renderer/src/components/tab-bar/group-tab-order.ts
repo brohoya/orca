@@ -150,7 +150,7 @@ export function getGroupVisibleTabOrder(
 
 /**
  * Resolve the visible tab order the active surface is showing, for keyboard
- * navigation.
+ * navigation, or the order of `groupId` when a caller walks every split pane.
  *
  * Prefers the active group's `group.tabOrder` so drag-reordered tabs cycle
  * in the order the user sees. Falls back to the legacy
@@ -174,7 +174,8 @@ export function getActiveTabNavOrder(
     | 'browserTabsByWorktree'
   >,
   worktreeId: string,
-  ids: ActiveTabNavOrderIds = {}
+  ids: ActiveTabNavOrderIds = {},
+  groupId: string | undefined = state.activeGroupIdByWorktree[worktreeId]
 ): VisibleTabRef[] {
   const terminalIds = ids.terminalIds ?? (state.tabsByWorktree[worktreeId] ?? []).map((t) => t.id)
   const editorIds =
@@ -192,9 +193,8 @@ export function getActiveTabNavOrder(
       .filter((tab) => tab.contentType === 'agent-session')
       .map((tab) => tab.id)
 
-  const activeGroupId = state.activeGroupIdByWorktree[worktreeId]
-  const group = activeGroupId
-    ? (state.groupsByWorktree[worktreeId] ?? []).find((g) => g.id === activeGroupId)
+  const group = groupId
+    ? (state.groupsByWorktree[worktreeId] ?? []).find((g) => g.id === groupId)
     : undefined
 
   if (group) {

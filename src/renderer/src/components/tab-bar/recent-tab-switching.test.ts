@@ -40,6 +40,7 @@ function stateWithTabs(
   | 'agentStatusByPaneKey'
   | 'browserTabsByWorktree'
   | 'groupsByWorktree'
+  | 'layoutByWorktree'
   | 'openFiles'
   | 'paneForegroundAgentByPaneKey'
   | 'retainedAgentsByPaneKey'
@@ -67,6 +68,7 @@ function stateWithTabs(
     groupsByWorktree: {
       [WT]: [{ id: GROUP, worktreeId: WT, activeTabId, tabOrder, recentTabIds }]
     },
+    layoutByWorktree: {},
     openFiles: tabs.map((entry) => ({
       id: entry.entityId,
       worktreeId: WT
