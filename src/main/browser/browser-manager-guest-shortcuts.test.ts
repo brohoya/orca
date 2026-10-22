@@ -500,6 +500,8 @@ describe('browserManager', () => {
     beforeInputHandler?.({ preventDefault: togglePreventDefault }, toggleInput)
     // Why: a held A auto-repeats; it must not flip the scope back and forth.
     beforeInputHandler?.({ preventDefault: vi.fn() }, { ...toggleInput, isAutoRepeat: true })
+    // Why: Ctrl+Shift+A selects all terminal text on Linux and Windows, so it is not the toggle.
+    beforeInputHandler?.({ preventDefault: vi.fn() }, { ...toggleInput, key: 'A', shift: true })
     const keyUpPreventDefault = vi.fn()
     beforeInputHandler?.(
       { preventDefault: keyUpPreventDefault },
