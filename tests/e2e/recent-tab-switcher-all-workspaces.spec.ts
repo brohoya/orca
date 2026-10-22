@@ -1,6 +1,7 @@
 /**
- * E2E for the Ctrl+Tab switcher scopes (This workspace, All workspaces) with the keyboard, the
- * mouse, and a focused browser page. Writes the switcher states and screenshots as artifacts.
+ * E2E for the Ctrl+Tab switcher scopes (This workspace, All workspaces): the keyboard, the mouse,
+ * a focused browser page or terminal, long lists, and Tab strip order. Writes the switcher states
+ * and screenshots as artifacts.
  */
 
 import { writeFileSync } from 'node:fs'
@@ -183,7 +184,7 @@ async function readPageTitle(page: Page, browserTabId: string): Promise<string> 
 }
 
 test.describe('Ctrl+Tab switcher across workspaces', () => {
-  test('Ctrl+A flips the scope mid-gesture and the scope sticks', async ({
+  test('Ctrl+A flips the scope mid-gesture; the list follows visits, opens chat and page rows, takes clicks, and keeps the scope', async ({
     orcaPage
   }, testInfo) => {
     const page = orcaPage
