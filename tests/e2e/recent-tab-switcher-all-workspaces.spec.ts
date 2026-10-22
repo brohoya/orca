@@ -800,8 +800,63 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     await expect(switcher(page)).toHaveCount(0)
     await expect.poll(focusedPane).toBe(panes.rightGroupId)
 
+    // README.md goes behind package.json in one task, so the right pane has not loaded it, as after a
+    // restart: its rich editor mounts only after the content loads, well after the release.
+    await page.evaluate(
+      ({ wId, rightGroupId }) => {
+        const state = window.__store!.getState()
+        const worktree = Object.values(state.worktreesByRepo)
+          .flat()
+          .find((entry) => entry.id === wId)
+        if (!worktree) {
+          throw new Error(`unknown worktree ${wId}`)
+        }
+        const separator = worktree.path.includes('\\') ? '\\' : '/'
+        state.openFile(
+          {
+            filePath: `${worktree.path}${separator}README.md`,
+            relativePath: 'README.md',
+            worktreeId: wId,
+            language: 'markdown',
+            mode: 'edit'
+          },
+          { targetGroupId: rightGroupId }
+        )
+        const packageTab = (window.__store!.getState().unifiedTabsByWorktree[wId] ?? []).find(
+          (tab) => tab.groupId === rightGroupId && tab.entityId.endsWith('package.json')
+        )
+        if (!packageTab) {
+          throw new Error('package.json left the right pane')
+        }
+        window.__store!.getState().activateTab(packageTab.id, { worktreeId: wId })
+      },
+      { wId: worktreeId, rightGroupId: panes.rightGroupId }
+    )
+    await clickTab(page, 'Terminal 1')
+    await focusActiveTerminalInput(page)
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('a')
+    await expect(switcher(page)).toContainText('Switch Tab · This workspace')
+    const markdownRow = rowIndex(await readSwitcher(page), 'README.md')
+    expect(markdownRow).toBeGreaterThan(0)
+    for (let row = 1; row < markdownRow; row++) {
+      await page.keyboard.press('Tab')
+    }
+    const markdownPick = await readSwitcher(page)
+    expect(markdownPick.rows[rowIndex(markdownPick, 'README.md')].selected).toBe(true)
+    await page.keyboard.up('Control')
+    await expect(switcher(page)).toHaveCount(0)
+    await expect.poll(focusedPane).toBe(panes.rightGroupId)
+    await expect
+      .poll(() => page.evaluate(() => Boolean(document.activeElement?.closest('.ProseMirror'))))
+      .toBe(true)
+
     const reportPath = testInfo.outputPath('recent-tab-switcher-two-panes.json')
-    writeFileSync(reportPath, `${JSON.stringify({ panes, bothPanes, allPanes }, null, 2)}\n`)
+    writeFileSync(
+      reportPath,
+      `${JSON.stringify({ panes, bothPanes, allPanes, markdownPick }, null, 2)}\n`
+    )
     await testInfo.attach('switcher-two-panes', {
       path: reportPath,
       contentType: 'application/json'

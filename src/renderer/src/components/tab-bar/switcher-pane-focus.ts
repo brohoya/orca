@@ -9,7 +9,8 @@ const EDITOR_INPUT_SELECTOR =
 
 /**
  * Moves the keyboard into a tab that the switcher opened in another pane. Activation only marks
- * that pane as focused, and an editor there is already mounted, so it does not take the focus.
+ * that pane as focused: an editor already on screen there does not take the focus, and an editor
+ * that mounts with the switch takes it only from the page body.
  */
 export function focusTabInOtherPane(
   worktreeId: string,
@@ -61,6 +62,10 @@ function getPaneAfterSwitch(worktreeId: string, paneBefore: string | undefined):
 }
 
 function focusPaneEditor(pane: string): void {
+  // Why: the old pane stays on screen, so its field would keep the keys while the editor loads.
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
   requestAnimationFrame(() => {
     const input = document
       .querySelector(`[data-tab-group-body-id="${CSS.escape(pane)}"]`)
