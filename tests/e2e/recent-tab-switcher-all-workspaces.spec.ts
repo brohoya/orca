@@ -580,4 +580,97 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
       contentType: 'application/json'
     })
   })
+
+  test('Tab strip order follows the sidebar rows and the panes of each workspace', async ({
+    orcaPage
+  }, testInfo) => {
+    const page = orcaPage
+    await waitForSessionReady(page)
+    await waitForActiveWorktree(page)
+    await ensureTerminalVisible(page)
+    await page.evaluate(async () => {
+      await window.__store!.getState().updateSettings({
+        uiLanguage: 'en',
+        ctrlTabOrderMode: 'sequential',
+        ctrlTabScope: 'all'
+      })
+    })
+    const { primaryId, secondaryId } = await getWorktreeIdsByBranch(page)
+    const activeTab = page.locator('[data-tab-id][data-active="true"]:visible')
+
+    // e2e-secondary holds index.ts, then diff-note-layout.ts. Pinned, it leads the sidebar.
+    await openSeededFile(page, secondaryId, 'src/index.ts', { activate: true })
+    await expect(activeTab).toContainText('index.ts')
+    await openSeededFile(page, secondaryId, 'src/diff-note-layout.ts')
+    await expect(activeTab).toContainText('diff-note-layout.ts')
+    await page.evaluate(async (wId) => {
+      const result = await window.__store!.getState().updateWorktreeMeta(wId, { isPinned: true })
+      if (!result?.ok) {
+        throw new Error(`pin failed: ${JSON.stringify(result)}`)
+      }
+    }, secondaryId)
+
+    // Terminal 1 moves to a new pane on the left of package.json, so the first pane on screen
+    // is the second group that the workspace created.
+    await switchToWorktree(page, primaryId)
+    await openSeededFile(page, primaryId, 'package.json')
+    await expect(activeTab).toContainText('package.json')
+    const leftGroupId = await page.evaluate((wId) => {
+      const state = window.__store!.getState()
+      const terminalTab = (state.unifiedTabsByWorktree[wId] ?? []).find(
+        (tab) => tab.contentType === 'terminal'
+      )
+      const groupId = terminalTab
+        ? state.createEmptySplitGroup(wId, terminalTab.groupId, 'left')
+        : null
+      if (!terminalTab || !groupId) {
+        throw new Error('the primary workspace did not split')
+      }
+      state.moveUnifiedTabToGroup(terminalTab.id, groupId)
+      return groupId
+    }, primaryId)
+
+    await page.evaluate(
+      (ids) => {
+        const state = window.__store!.getState()
+        state.setSidebarOpen(true)
+        for (const id of ids) {
+          state.revealWorktreeInSidebar(id)
+        }
+      },
+      [primaryId, secondaryId]
+    )
+    const secondaryRow = await worktreeRowSurface(page, secondaryId).boundingBox()
+    const primaryRow = await worktreeRowSurface(page, primaryId).boundingBox()
+    if (!secondaryRow || !primaryRow) {
+      throw new Error('the workspace rows are not on screen')
+    }
+    // Why: the check means nothing unless the sidebar order differs from the project order.
+    expect(secondaryRow.y).toBeLessThan(primaryRow.y)
+    await focusPane(page, primaryId, leftGroupId)
+
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    const strip = await readSwitcher(page)
+    expect(strip.title).toBe('Switch Tab · All workspaces')
+    expect(rowNames(strip)).toEqual([
+      'index.ts',
+      'diff-note-layout.ts',
+      'Terminal 1',
+      'package.json'
+    ])
+    // Terminal 1 is on screen and keeps its place, so Tab selects the tab after it.
+    expect(strip.rows[3].selected).toBe(true)
+    await switcher(page).screenshot({ path: testInfo.outputPath('switcher-tab-strip-order.png') })
+    await page.keyboard.press('Escape')
+    await expect(switcher(page)).toHaveCount(0)
+    await page.keyboard.up('Control')
+
+    const reportPath = testInfo.outputPath('recent-tab-switcher-tab-strip-order.json')
+    writeFileSync(reportPath, `${JSON.stringify({ strip }, null, 2)}\n`)
+    await testInfo.attach('switcher-tab-strip-order', {
+      path: reportPath,
+      contentType: 'application/json'
+    })
+  })
 })

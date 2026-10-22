@@ -8,7 +8,10 @@ import { searchBrowserPages } from './browser-palette-search'
 import { buildSearchableSimulatorTabs, searchSimulatorTabs } from './simulator-palette-search'
 import { buildSearchableWorkspaceTabs, searchWorkspaceTabs } from './workspace-tab-palette-search'
 import { buildOpenTabSearchEntries } from '../components/tab-bar/open-tab-search-entries'
-import { buildAllWorkspacesRecentTabSwitcherModel } from '../components/tab-bar/all-workspaces-recent-tab-switching'
+import {
+  buildAllWorkspacesRecentTabSwitcherModel,
+  type AllWorkspacesRecentTabState
+} from '../components/tab-bar/all-workspaces-recent-tab-switching'
 
 const SHARED_WORKTREE_ID = 'repo-shared::/workspace'
 const RUNTIME_HOST_ID = 'runtime:paired-host'
@@ -460,7 +463,7 @@ describe('Cmd-J host-qualified candidate ownership', () => {
   })
 
   it('lists Ctrl+Tab agent chats only under the host that owns them', () => {
-    const model = buildAllWorkspacesRecentTabSwitcherModel({
+    const state: AllWorkspacesRecentTabState = {
       activeBrowserTabId: null,
       activeFileId: null,
       activeFileIdByWorktree: {},
@@ -476,6 +479,7 @@ describe('Cmd-J host-qualified candidate ownership', () => {
       browserTabsByWorktree: {},
       folderWorkspaces: [],
       groupsByWorktree: {},
+      layoutByWorktree: {},
       openFiles: [],
       paneForegroundAgentByPaneKey: {},
       repos: [],
@@ -510,7 +514,8 @@ describe('Cmd-J host-qualified candidate ownership', () => {
         ]
       },
       worktreesByRepo: { 'repo-shared': pairedWorktrees() }
-    })
+    }
+    const model = buildAllWorkspacesRecentTabSwitcherModel(state, { mode: 'mru', sidebarOrder: [] })
 
     expect(
       model?.items.map((item) => [item.label, item.location, item.result.executionHostId])
