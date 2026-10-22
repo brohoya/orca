@@ -16,8 +16,8 @@ export function focusTabInOtherPane(
   tab: TypeCyclableTab,
   paneBefore: string | undefined
 ): void {
-  const pane = useAppStore.getState().activeGroupIdByWorktree[worktreeId]
-  if (!pane || pane === paneBefore) {
+  const pane = getPaneAfterSwitch(worktreeId, paneBefore)
+  if (!pane) {
     return
   }
   if (tab.type === 'terminal') {
@@ -41,6 +41,26 @@ export function focusTabInOtherPane(
     }
     return
   }
+  focusPaneEditor(pane)
+}
+
+/**
+ * An All workspaces row opens through Cmd+J's path, which expects an editor to take the focus
+ * when it mounts. An editor that is already on screen in another pane does not.
+ */
+export function focusEditorInOtherPane(worktreeId: string, paneBefore: string | undefined): void {
+  const pane = getPaneAfterSwitch(worktreeId, paneBefore)
+  if (pane) {
+    focusPaneEditor(pane)
+  }
+}
+
+function getPaneAfterSwitch(worktreeId: string, paneBefore: string | undefined): string | null {
+  const pane = useAppStore.getState().activeGroupIdByWorktree[worktreeId]
+  return pane && pane !== paneBefore ? pane : null
+}
+
+function focusPaneEditor(pane: string): void {
   requestAnimationFrame(() => {
     const input = document
       .querySelector(`[data-tab-group-body-id="${CSS.escape(pane)}"]`)
