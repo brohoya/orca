@@ -13,6 +13,12 @@ import {
   waitForActiveWorktree,
   waitForSessionReady
 } from './helpers/store'
+import { focusActiveTerminalInput, waitForActivePanePtyId } from './helpers/terminal'
+import {
+  clearTerminalPtyWriteLog,
+  installTerminalPtyWriteSpy,
+  readTerminalPtyWriteEntries
+} from './helpers/terminal-pty-write-spy'
 import { worktreeRowSurface } from './worktree-row-locators'
 
 type SwitcherSnapshot = {
@@ -676,5 +682,43 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
       path: reportPath,
       contentType: 'application/json'
     })
+  })
+
+  test('Ctrl+A in the switcher does not reach a focused terminal', async ({
+    orcaPage,
+    electronApp
+  }) => {
+    const page = orcaPage
+    await waitForSessionReady(page)
+    await waitForActiveWorktree(page)
+    await ensureTerminalVisible(page)
+    await page.evaluate(async () => {
+      await window.__store!.getState().updateSettings({ uiLanguage: 'en' })
+    })
+    await installTerminalPtyWriteSpy(electronApp)
+    const ptyId = await waitForActivePanePtyId(page)
+    const shellInput = async (): Promise<string> =>
+      (await readTerminalPtyWriteEntries(electronApp))
+        .filter((entry) => entry.id === ptyId)
+        .map((entry) => entry.data)
+        .join('')
+    await focusActiveTerminalInput(page)
+    await clearTerminalPtyWriteLog(electronApp)
+
+    // Ctrl+A moves to the line start in readline and is a common tmux prefix; the switcher keeps it.
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('a')
+    await expect(switcher(page)).toContainText('Switch Tab · All workspaces')
+    await page.keyboard.press('a')
+    await expect(switcher(page)).toContainText('Switch Tab · This workspace')
+    await page.keyboard.press('Escape')
+    await expect(switcher(page)).toHaveCount(0)
+    await page.keyboard.up('Control')
+
+    // Why: the same chord without the switcher reaches the shell, so the log does see this focus.
+    await page.keyboard.press('Control+a')
+    await expect.poll(shellInput).toContain('\x01')
+    expect((await shellInput()).split('\x01')).toHaveLength(2)
   })
 })
