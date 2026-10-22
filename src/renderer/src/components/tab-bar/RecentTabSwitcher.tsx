@@ -267,7 +267,7 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
   }, [cancel, commit, openOrAdvance, toggleScope])
 
   useEffect(() => {
-    selectedRowRef.current?.scrollIntoView?.({ block: 'nearest' })
+    selectedRowRef.current?.scrollIntoView({ block: 'nearest' })
   }, [switcher?.scope, switcher?.selectedIndex])
 
   if (!switcher) {
