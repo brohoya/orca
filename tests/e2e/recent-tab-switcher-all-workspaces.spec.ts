@@ -329,6 +329,10 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     expect(rowNames(chatRows).slice(0, 2)).toEqual(['Terminal 1', 'Switcher chat'])
     expect(chatRows.rows[1].selected).toBe(true)
     expect(chatRows.rows[1].text).toContain('e2e-secondary')
+    // The chat row shows its agent, as the tab strip does; the plain shell row shows none.
+    const chatRowOptions = switcher(page).getByRole('option')
+    await expect(chatRowOptions.nth(1).locator('[data-agent-icon="claude"]')).toHaveCount(1)
+    await expect(chatRowOptions.nth(0).locator('[data-agent-icon]')).toHaveCount(0)
     await page.keyboard.up('Control')
     await expect(switcher(page)).toHaveCount(0)
     await expect(page.locator('[data-rendered-active-worktree-id]')).toHaveAttribute(
