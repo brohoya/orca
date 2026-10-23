@@ -162,6 +162,8 @@ function scopeLabel(scope: CtrlTabScope): string {
 export default function RecentTabSwitcher(): React.JSX.Element | null {
   const [switcher, setSwitcher] = useState<SwitcherState | null>(null)
   const switcherRef = useRef<SwitcherState | null>(null)
+  // Why: the store gets a new scope only after its save returns, so a fast next Ctrl+Tab reads it here.
+  const pendingScopeRef = useRef<{ scope: CtrlTabScope } | null>(null)
   const selectedRowRef = useRef<HTMLDivElement | null>(null)
 
   const setSwitcherState = useCallback((next: SwitcherState | null): void => {
@@ -173,7 +175,10 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
     (direction: 1 | -1): void => {
       const store = useAppStore.getState()
       const current = switcherRef.current
-      const scope = current?.scope ?? normalizeCtrlTabScope(store.settings?.ctrlTabScope)
+      const scope =
+        current?.scope ??
+        pendingScopeRef.current?.scope ??
+        normalizeCtrlTabScope(store.settings?.ctrlTabScope)
       const next = buildSwitcherState(store, scope, current, direction)
       if (next) {
         setSwitcherState(next)
@@ -190,7 +195,14 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
     const store = useAppStore.getState()
     const scope: CtrlTabScope = current.scope === 'all' ? 'workspace' : 'all'
     // Why: the scope is sticky, so the next Ctrl+Tab opens where the user left it.
-    void store.updateSettings({ ctrlTabScope: scope })
+    const pending = { scope }
+    pendingScopeRef.current = pending
+    void store.updateSettings({ ctrlTabScope: scope }).then(() => {
+      // Why: only the last save puts its scope in the store, and an older save can return first.
+      if (pendingScopeRef.current === pending) {
+        pendingScopeRef.current = null
+      }
+    })
     setSwitcherState(
       buildSwitcherState(store, scope, null, 1) ?? {
         scope: 'workspace',
