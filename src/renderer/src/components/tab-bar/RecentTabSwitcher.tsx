@@ -245,11 +245,12 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
       openOrAdvance(shiftKey ? -1 : 1)
     })
     const unsubscribeKeyUp = window.api.ui.onCtrlTabKeyUp(commit)
-    const unsubscribeToggleScope = window.api.ui.onCtrlTabToggleScope(toggleScope)
+    // Why: a dev reload can pair this renderer with an older preload that lacks the toggle.
+    const unsubscribeToggleScope = window.api.ui.onCtrlTabToggleScope?.(toggleScope)
     return () => {
       unsubscribeKeyDown()
       unsubscribeKeyUp()
-      unsubscribeToggleScope()
+      unsubscribeToggleScope?.()
     }
   }, [commit, openOrAdvance, toggleScope])
 
