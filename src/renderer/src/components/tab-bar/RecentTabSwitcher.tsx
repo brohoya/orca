@@ -105,8 +105,12 @@ function buildSwitcherState(
 
 function commitAllWorkspacesItem(item: AllWorkspacesRecentTabItem): void {
   const store = useAppStore.getState()
-  const worktreeId = store.activeWorktreeId
-  const paneBefore = worktreeId ? store.activeGroupIdByWorktree[worktreeId] : undefined
+  const { worktreeId } = item.result
+  // Why: a pane of another workspace, or a pane behind another view, had no focus to keep.
+  const paneBefore =
+    store.activeView === 'terminal' && store.activeWorktreeId === worktreeId
+      ? store.activeGroupIdByWorktree[worktreeId]
+      : undefined
   const outcome = activateOpenTabSearchResult(item.result)
   if (outcome.status === 'failed') {
     toast.error(outcome.message)
@@ -114,7 +118,7 @@ function commitAllWorkspacesItem(item: AllWorkspacesRecentTabItem): void {
   }
   if (outcome.status === 'activated') {
     outcome.focus?.()
-    if (item.type === 'editor' && worktreeId) {
+    if (item.type === 'editor') {
       focusEditorInOtherPane(worktreeId, paneBefore)
     }
   }
