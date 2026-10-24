@@ -47,7 +47,8 @@ export function focusTabInOtherPane(
 
 /**
  * An All workspaces row opens through Cmd+J's path, which expects an editor to take the focus
- * when it mounts. An editor that is already on screen in another pane does not.
+ * when it mounts. An editor that stays mounted, in another pane or behind another workspace or
+ * view, does not. `paneBefore` is undefined when no pane of this workspace had the focus.
  */
 export function focusEditorInOtherPane(worktreeId: string, paneBefore: string | undefined): void {
   const pane = getPaneAfterSwitch(worktreeId, paneBefore)

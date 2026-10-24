@@ -141,6 +141,16 @@ async function focusPane(page: Page, worktreeId: string, groupId: string): Promi
   })
 }
 
+/** The pane that has the keyboard focus, or null when the focus is outside every pane. */
+async function readFocusedPane(page: Page): Promise<string | null> {
+  return page.evaluate(
+    () =>
+      document.activeElement
+        ?.closest('[data-tab-group-body-id]')
+        ?.getAttribute('data-tab-group-body-id') ?? null
+  )
+}
+
 const PAGE_CTRL_TAB: Electron.KeyboardInputEvent[] = [
   { type: 'keyDown', keyCode: 'Control', modifiers: ['control'] },
   { type: 'keyDown', keyCode: 'Tab', modifiers: ['control'] },
@@ -204,6 +214,10 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     await switchToWorktree(page, primaryId)
     await openSeededFile(page, primaryId, 'package.json')
     await expect(activeTab).toContainText('package.json')
+    // Why: the editor mounts before the switch, so it stays mounted behind e2e-secondary.
+    await expect(
+      page.locator('[data-tab-group-body-id] .monaco-editor:visible').first()
+    ).toBeVisible()
     await openSeededFile(page, secondaryId, 'src/index.ts', { activate: true })
     await expect(activeTab).toContainText('index.ts')
     await openSeededFile(page, secondaryId, 'src/diff-note-layout.ts')
@@ -250,6 +264,12 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     await page.keyboard.up('Control')
     await expect(switcher(page)).toHaveCount(0)
     await expect(activeTab).toContainText('package.json')
+    // package.json stayed mounted behind e2e-secondary, so it takes the focus only from the switcher.
+    const primaryPane = await page.evaluate(
+      (wId) => window.__store!.getState().activeGroupIdByWorktree[wId],
+      primaryId
+    )
+    await expect.poll(() => readFocusedPane(page)).toBe(primaryPane)
 
     // The scope sticks: the next Ctrl+Tab lists every workspace and selects the tab just left.
     const sticky = await peekSwitcher(page)
@@ -761,13 +781,7 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     // Focus history: a click in the left pane (index.ts), then in the right pane (package.json).
     await paneEditor(panes.leftGroupId).click()
     await paneEditor(panes.rightGroupId).click()
-    const focusedPane = () =>
-      page.evaluate(
-        () =>
-          document.activeElement
-            ?.closest('[data-tab-group-body-id]')
-            ?.getAttribute('data-tab-group-body-id') ?? null
-      )
+    const focusedPane = () => readFocusedPane(page)
     await expect.poll(focusedPane).toBe(panes.rightGroupId)
 
     await page.keyboard.down('Control')
@@ -796,6 +810,19 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     const allPanes = await readSwitcher(page)
     expect(rowNames(allPanes)).toEqual(['index.ts', 'package.json', 'Terminal 1'])
     expect(allPanes.rows[1].selected).toBe(true)
+    await page.keyboard.up('Control')
+    await expect(switcher(page)).toHaveCount(0)
+    await expect.poll(focusedPane).toBe(panes.rightGroupId)
+
+    // From Settings, the row of the tab behind it gives the keys back to its editor, which stayed mounted.
+    await page.evaluate(() => window.__store!.getState().openSettingsPage())
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    await expect(switcher(page)).toContainText('Switch Tab · All workspaces')
+    await page.keyboard.press('Shift+Tab')
+    const behindSettings = await readSwitcher(page)
+    expect(rowNames(behindSettings)[0]).toBe('package.json')
+    expect(behindSettings.rows[0].selected).toBe(true)
     await page.keyboard.up('Control')
     await expect(switcher(page)).toHaveCount(0)
     await expect.poll(focusedPane).toBe(panes.rightGroupId)
@@ -855,7 +882,7 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     const reportPath = testInfo.outputPath('recent-tab-switcher-two-panes.json')
     writeFileSync(
       reportPath,
-      `${JSON.stringify({ panes, bothPanes, allPanes, markdownPick }, null, 2)}\n`
+      `${JSON.stringify({ panes, bothPanes, allPanes, behindSettings, markdownPick }, null, 2)}\n`
     )
     await testInfo.attach('switcher-two-panes', {
       path: reportPath,
