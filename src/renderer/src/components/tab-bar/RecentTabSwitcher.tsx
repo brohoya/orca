@@ -103,6 +103,17 @@ function buildSwitcherState(
   }
 }
 
+function buildScopeSwitcherState(store: AppState, scope: CtrlTabScope): SwitcherState {
+  return (
+    buildSwitcherState(store, scope, null, 1) ?? {
+      scope: 'workspace',
+      items: [],
+      selectedIndex: -1,
+      outsideWorkspace: true
+    }
+  )
+}
+
 function commitAllWorkspacesItem(item: AllWorkspacesRecentTabItem): void {
   const store = useAppStore.getState()
   const { worktreeId } = item.result
@@ -201,20 +212,29 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
     // Why: the scope is sticky, so the next Ctrl+Tab opens where the user left it.
     const pending = { scope }
     pendingScopeRef.current = pending
-    void store.updateSettings({ ctrlTabScope: scope }).then(() => {
-      // Why: only the last save puts its scope in the store, and an older save can return first.
-      if (pendingScopeRef.current === pending) {
+    void store
+      .updateSettingsOrThrow({ ctrlTabScope: scope })
+      .then(() => {
+        // Why: only the last save puts its scope in the store, and an older save can return first.
+        if (pendingScopeRef.current === pending) {
+          pendingScopeRef.current = null
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to save the Ctrl+Tab scope:', error)
+        if (pendingScopeRef.current !== pending) {
+          return
+        }
         pendingScopeRef.current = null
-      }
-    })
-    setSwitcherState(
-      buildSwitcherState(store, scope, null, 1) ?? {
-        scope: 'workspace',
-        items: [],
-        selectedIndex: -1,
-        outsideWorkspace: true
-      }
-    )
+        // Why: the store kept the saved scope, so the box shows the scope that the next Ctrl+Tab opens.
+        if (switcherRef.current?.scope === scope) {
+          const latest = useAppStore.getState()
+          setSwitcherState(
+            buildScopeSwitcherState(latest, normalizeCtrlTabScope(latest.settings?.ctrlTabScope))
+          )
+        }
+      })
+    setSwitcherState(buildScopeSwitcherState(store, scope))
   }, [setSwitcherState])
 
   const commit = useCallback((): void => {

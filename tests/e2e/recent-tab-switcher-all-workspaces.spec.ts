@@ -452,6 +452,25 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     steps.push({ step: 'kept-scope', ...keptScope })
     expect(keptScope.title).toBe('Switch Tab · This workspace')
 
+    // After a failed save, the open box and the next Ctrl+Tab show the saved scope.
+    await page.evaluate(() => {
+      const store = window.__store!
+      const save = store.getState().updateSettingsOrThrow
+      const fail = new Promise<void>((_, reject) => window.addEventListener('e2e-fail', reject))
+      store.setState({
+        updateSettingsOrThrow: (next) => ('ctrlTabScope' in next ? fail : save(next))
+      })
+    })
+    await page.keyboard.down('Control')
+    await page.keyboard.press('Tab')
+    await page.keyboard.press('a')
+    await expect(switcher(page)).toContainText('Switch Tab · All workspaces')
+    await page.evaluate(() => window.dispatchEvent(new Event('e2e-fail')))
+    await expect(switcher(page)).toContainText('Switch Tab · This workspace')
+    await page.keyboard.press('Escape')
+    await page.keyboard.up('Control')
+    expect((await peekSwitcher(page)).title).toBe('Switch Tab · This workspace')
+
     const reportPath = testInfo.outputPath('recent-tab-switcher-all-workspaces.json')
     writeFileSync(reportPath, `${JSON.stringify({ steps }, null, 2)}\n`)
     await testInfo.attach('switcher-states', { path: reportPath, contentType: 'application/json' })
