@@ -74,7 +74,7 @@ function buildSwitcherState(
   scope: CtrlTabScope,
   previous: SwitcherState | null,
   direction: 1 | -1
-): SwitcherState | null {
+): SwitcherState {
   const mode = normalizeCtrlTabOrderMode(store.settings?.ctrlTabOrderMode)
   if (scope === 'all') {
     const model = buildAllWorkspacesRecentTabSwitcherModel(store, {
@@ -88,10 +88,10 @@ function buildSwitcherState(
       selectedIndex: getNextSelectedIndex(model, previous, scope, direction)
     }
   }
+  // Why: the box opens even with no tab to list, so that Ctrl+A can reach the other workspaces.
   if (store.activeView !== 'terminal' || !store.activeWorktreeId) {
-    return null
+    return { scope, items: [], selectedIndex: -1, outsideWorkspace: true }
   }
-  // Why: a single-tab workspace still opens the switcher so Ctrl+A can reach the other workspaces.
   const model = buildRecentTabSwitcherModel(store, store.activeWorktreeId, mode) ?? {
     items: [],
     activeIndex: -1
@@ -101,17 +101,6 @@ function buildSwitcherState(
     items: model.items,
     selectedIndex: getNextSelectedIndex(model, previous, scope, direction)
   }
-}
-
-function buildScopeSwitcherState(store: AppState, scope: CtrlTabScope): SwitcherState {
-  return (
-    buildSwitcherState(store, scope, null, 1) ?? {
-      scope: 'workspace',
-      items: [],
-      selectedIndex: -1,
-      outsideWorkspace: true
-    }
-  )
 }
 
 function commitAllWorkspacesItem(item: AllWorkspacesRecentTabItem): void {
@@ -194,10 +183,7 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
         current?.scope ??
         pendingScopeRef.current?.scope ??
         normalizeCtrlTabScope(store.settings?.ctrlTabScope)
-      const next = buildSwitcherState(store, scope, current, direction)
-      if (next) {
-        setSwitcherState(next)
-      }
+      setSwitcherState(buildSwitcherState(store, scope, current, direction))
     },
     [setSwitcherState]
   )
@@ -229,12 +215,11 @@ export default function RecentTabSwitcher(): React.JSX.Element | null {
         // Why: the store kept the saved scope, so the box shows the scope that the next Ctrl+Tab opens.
         if (switcherRef.current?.scope === scope) {
           const latest = useAppStore.getState()
-          setSwitcherState(
-            buildScopeSwitcherState(latest, normalizeCtrlTabScope(latest.settings?.ctrlTabScope))
-          )
+          const saved = normalizeCtrlTabScope(latest.settings?.ctrlTabScope)
+          setSwitcherState(buildSwitcherState(latest, saved, null, 1))
         }
       })
-    setSwitcherState(buildScopeSwitcherState(store, scope))
+    setSwitcherState(buildSwitcherState(store, scope, null, 1))
   }, [setSwitcherState])
 
   const commit = useCallback((): void => {

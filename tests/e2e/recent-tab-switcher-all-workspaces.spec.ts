@@ -446,8 +446,7 @@ test.describe('Ctrl+Tab switcher across workspaces', () => {
     await page.keyboard.press('Escape')
     await expect(switcher(page)).toHaveCount(0)
     await page.keyboard.up('Control')
-    // The toggle keeps the new scope even where it has no list to show.
-    await page.evaluate(() => window.__store!.getState().closeSettingsPage())
+    // The box opens again in the kept scope, so the Ctrl+A below can still reach All workspaces.
     const keptScope = await peekSwitcher(page)
     steps.push({ step: 'kept-scope', ...keptScope })
     expect(keptScope.title).toBe('Switch Tab · This workspace')
